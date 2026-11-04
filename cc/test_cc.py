@@ -18,6 +18,13 @@ from companion import (
 
 
 class CompanionStateTests(unittest.TestCase):
+    def test_root_launcher_is_the_double_click_entry_point(self):
+        root = Path(__file__).resolve().parents[1]
+        launcher = (root / "Audio Monitor.bat").read_text(encoding="utf-8")
+        shortcut = (root / "shortcut.ps1").read_text(encoding="utf-8")
+        self.assertIn("start.bat", launcher)
+        self.assertIn('"Audio Monitor.bat"', shortcut)
+
     def test_caption_width_does_not_shrink_below_configured_width(self):
         self.assertEqual(caption_width({"width": 1100}, 240), 1100)
 
@@ -75,6 +82,11 @@ class CompanionStateTests(unittest.TestCase):
         self.assertTrue(should_minimize_to_tray({"minimize_to_tray": True}))
         self.assertFalse(should_minimize_to_tray({"minimize_to_tray": True}, quit_requested=True))
         self.assertFalse(should_minimize_to_tray({"minimize_to_tray": False}))
+
+    def test_companion_state_callback_has_qt_gui_thread_affinity(self):
+        source = (Path(__file__).resolve().parent / "companion.py").read_text(encoding="utf-8")
+        self.assertIn("class Companion(QObject):", source)
+        self.assertIn("super().__init__()", source)
 
     def test_invalid_config_falls_back_to_defaults(self):
         with TemporaryDirectory() as folder:

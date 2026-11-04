@@ -39,7 +39,7 @@ Use Python 3.12 if you can. 3.11 and 3.13 are accepted. Older than 3.11 is not.
 
 Follow [INSTALL.md](INSTALL.md). Short form: extract the folder, double-click `setup.bat`, type YES. The page is `http://127.0.0.1:8765/`.
 
-For one launcher with lifecycle commands, run `agentic-audio-monitor.bat start`, `agentic-audio-monitor.bat stop`, or `agentic-audio-monitor.bat restart`. Use `agentic-audio-monitor.bat status` to check the monitor process. Closed Captions are started and stopped by the monitor when enabled from its web UI.
+For a normal desktop start, double-click `Audio Monitor.bat` or the **Audio Monitor** shortcut. For lifecycle commands, run `agentic-audio-monitor.bat start`, `agentic-audio-monitor.bat stop`, or `agentic-audio-monitor.bat restart`. Use `agentic-audio-monitor.bat status` to check the monitor process. Closed Captions are started and stopped by the monitor when enabled from its web UI.
 
 ## Project layout
 

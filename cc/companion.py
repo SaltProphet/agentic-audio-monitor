@@ -314,8 +314,9 @@ if QApplication is not None:
             super().closeEvent(event)
 
 
-    class Companion:
+    class Companion(QObject):
         def __init__(self, config: dict):
+            super().__init__()
             self.config = config
             self.window = CaptionWindow(config)
             self.window.quit_requested = False

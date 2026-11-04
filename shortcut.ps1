@@ -9,9 +9,9 @@ if (-not $PSBoundParameters.ContainsKey("Desktop") -and -not $PSBoundParameters.
 }
 
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
-$Target = Join-Path $Root "run.bat"
+$Target = Join-Path $Root "Audio Monitor.bat"
 if (-not (Test-Path -LiteralPath $Target)) {
-  Write-Error "run.bat is not in this folder."
+  Write-Error "Audio Monitor.bat is not in this folder."
 }
 
 function New-MonitorShortcut {
