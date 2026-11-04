@@ -19,6 +19,7 @@ DEFAULTS = {
     "max_width": 720,
     "caption_timeout": 8.0,
     "click_through": True,
+    "minimize_to_tray": True,
     "position_revision": 0,
     "monitor_url": "http://127.0.0.1:8765/api/state",
 }
@@ -112,8 +113,8 @@ class CCController:
         self._stop()
 
     def _validate(self, config: dict) -> None:
-        if not isinstance(config["enabled"], bool) or not isinstance(config["click_through"], bool):
-            raise ValueError("enabled and click_through must be boolean")
+        if any(not isinstance(config[key], bool) for key in ("enabled", "click_through", "minimize_to_tray")):
+            raise ValueError("enabled, click_through, and minimize_to_tray must be boolean")
         if not 12 <= int(config["font_size"]) <= 96:
             raise ValueError("font_size must be between 12 and 96")
         if not 0.1 <= float(config["opacity"]) <= 1:

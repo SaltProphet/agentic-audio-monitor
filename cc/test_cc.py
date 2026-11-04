@@ -6,7 +6,15 @@ from tempfile import TemporaryDirectory
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from companion import DEFAULT_CONFIG, caption_width, load_config, read_state, transcript_from_state, write_config
+from companion import (
+    DEFAULT_CONFIG,
+    caption_width,
+    load_config,
+    read_state,
+    should_minimize_to_tray,
+    transcript_from_state,
+    write_config,
+)
 
 
 class CompanionStateTests(unittest.TestCase):
@@ -50,6 +58,23 @@ class CompanionStateTests(unittest.TestCase):
 
             self.assertTrue(merged["enabled"])
             self.assertEqual(merged["font_size"], 44)
+
+    def test_settings_page_has_minimize_to_tray_control(self):
+        page = (Path(__file__).resolve().parents[1] / "monitor" / "web" / "index.html").read_text(encoding="utf-8")
+        self.assertIn('id="cc-minimize-to-tray"', page)
+        self.assertIn("Minimize captions to the system tray", page)
+
+    def test_settings_page_has_version_and_language_selector(self):
+        page = (Path(__file__).resolve().parents[1] / "monitor" / "web" / "index.html").read_text(encoding="utf-8")
+        self.assertIn('id="app-version"', page)
+        self.assertIn('id="language"', page)
+        self.assertIn('value=""', page)
+        self.assertIn('value="es"', page)
+
+    def test_close_decision_hides_unless_quit_was_requested(self):
+        self.assertTrue(should_minimize_to_tray({"minimize_to_tray": True}))
+        self.assertFalse(should_minimize_to_tray({"minimize_to_tray": True}, quit_requested=True))
+        self.assertFalse(should_minimize_to_tray({"minimize_to_tray": False}))
 
     def test_invalid_config_falls_back_to_defaults(self):
         with TemporaryDirectory() as folder:

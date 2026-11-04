@@ -46,6 +46,19 @@ class CaptionControllerTests(unittest.TestCase):
             reloaded = CCController(Path(tmp), process_factory=lambda command, **kwargs: FakeProcess())
             self.assertTrue(reloaded.snapshot()["enabled"])
             self.assertEqual(reloaded.snapshot()["opacity"], 0.3)
+            self.assertTrue(reloaded.snapshot()["minimize_to_tray"])
+
+    def test_minimize_to_tray_setting_round_trips_and_rejects_non_boolean(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            controller = CCController(Path(tmp), process_factory=lambda command, **kwargs: FakeProcess())
+
+            ok, message = controller.apply({"minimize_to_tray": False})
+            self.assertTrue(ok, message)
+            self.assertFalse(controller.snapshot()["minimize_to_tray"])
+
+            ok, message = controller.apply({"minimize_to_tray": "no"})
+            self.assertFalse(ok)
+            self.assertIn("minimize_to_tray", message)
 
     def test_repeated_enable_does_not_launch_duplicate_process(self):
         processes = []

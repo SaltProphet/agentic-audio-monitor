@@ -15,6 +15,8 @@ The companion shows `Waiting for Audio Monitor...` while the local API is unavai
 
 The monitor UI's **Unlock / Move captions** button disables click-through and makes the overlay draggable/resizable. **Lock captions** restores click-through. The tray menu remains available when running standalone.
 
+Enable **Minimize captions to the system tray** in the monitor UI to hide the overlay when its window is closed without stopping captions. Restore it with the tray icon or the tray menu. Use the tray menu's **Quit** action to stop the companion explicitly.
+
 ## Configuration
 
-CC settings are stored separately at `cc\config.json`. The file stores lifecycle state, position, size, font size, compact maximum width, opacity, timeout, lock state, and monitor URL.
+CC settings are stored separately at `cc\config.json`. The file stores lifecycle state, position, size, font size, compact maximum width, opacity, timeout, lock state, minimize-to-tray preference, and monitor URL.

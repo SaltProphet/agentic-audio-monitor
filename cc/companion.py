@@ -24,6 +24,7 @@ DEFAULT_CONFIG = {
     "max_width": 720,
     "caption_timeout": 8.0,
     "click_through": True,
+    "minimize_to_tray": True,
     "position_revision": 0,
 }
 
@@ -41,6 +42,10 @@ def transcript_from_state(state: dict) -> tuple[int, str] | None:
 
 def caption_width(config: dict, suggested_width: int) -> int:
     return max(int(config["width"]), int(suggested_width))
+
+
+def should_minimize_to_tray(config: dict, quit_requested: bool = False) -> bool:
+    return bool(config.get("minimize_to_tray", True)) and not quit_requested
 
 
 def load_config(path: Path = CONFIG_PATH) -> dict:
@@ -197,6 +202,8 @@ if QApplication is not None:
             for key in ("font_size", "opacity", "max_width", "caption_timeout"):
                 if key in remote:
                     self.config[key] = remote[key]
+            if isinstance(remote.get("minimize_to_tray"), bool):
+                self.config["minimize_to_tray"] = remote["minimize_to_tray"]
             revision = int(remote.get("position_revision", self.remote_position_revision))
             if revision != self.remote_position_revision:
                 self.remote_position_revision = revision
@@ -297,6 +304,10 @@ if QApplication is not None:
                 write_config(CONFIG_PATH, self.config)
 
         def closeEvent(self, event) -> None:
+            if should_minimize_to_tray(self.config, getattr(self, "quit_requested", False)):
+                event.ignore()
+                self.hide()
+                return
             self.config["x"], self.config["y"] = self.x(), self.y()
             self.config["width"], self.config["height"] = self.width(), self.height()
             write_config(CONFIG_PATH, self.config)
@@ -307,6 +318,7 @@ if QApplication is not None:
         def __init__(self, config: dict):
             self.config = config
             self.window = CaptionWindow(config)
+            self.window.quit_requested = False
             self.thread = QThread()
             self.poller = StatePoller(config["monitor_url"])
             self.poller.moveToThread(self.thread)
@@ -314,12 +326,20 @@ if QApplication is not None:
             self.poller.state_received.connect(self._state_received)
             self.poller.connection_changed.connect(self.window.show_connection)
             self.tray = QSystemTrayIcon(QIcon(), self.window)
+            self.tray.activated.connect(self._tray_activated)
             self._build_menu()
             self.tray.show()
             self.window.show()
 
         def _build_menu(self) -> None:
             menu = QMenu()
+            show_action = QAction("Show captions", menu)
+            show_action.triggered.connect(self.window.showNormal)
+            menu.addAction(show_action)
+            hide_action = QAction("Hide captions", menu)
+            hide_action.triggered.connect(self.window.hide)
+            menu.addAction(hide_action)
+            menu.addSeparator()
             layout = QAction("Enter layout mode", menu)
             layout.triggered.connect(lambda: self.window.set_editing(not self.window.editing))
             menu.addAction(layout)
@@ -333,9 +353,17 @@ if QApplication is not None:
             menu.addAction(self._setting_action(menu, "Caption timeout (seconds)", "caption_timeout", 0, 120, float))
             menu.addSeparator()
             quit_action = QAction("Quit", menu)
-            quit_action.triggered.connect(QApplication.quit)
+            quit_action.triggered.connect(self._quit)
             menu.addAction(quit_action)
             self.tray.setContextMenu(menu)
+
+        def _tray_activated(self, reason) -> None:
+            if reason == QSystemTrayIcon.ActivationReason.DoubleClick:
+                self.window.showNormal()
+
+        def _quit(self) -> None:
+            self.window.quit_requested = True
+            QApplication.quit()
 
         def _setting_action(self, menu, name, key, minimum, maximum, converter):
             action = QAction(name, menu)

@@ -290,6 +290,15 @@ class ServerTests(unittest.TestCase):
         self.assertFalse(payload["state"]["cc"]["enabled"])
         self.assertTrue(processes[0].stopped)
 
+    def test_closed_caption_minimize_to_tray_setting_is_exposed_by_api(self):
+        status, raw = self._get("/api/cc")
+        self.assertEqual(status, 200)
+        self.assertTrue(json.loads(raw.decode("utf-8"))["minimize_to_tray"])
+
+        code, payload = self._post("/api/cc", {"minimize_to_tray": False})
+        self.assertEqual(code, 200)
+        self.assertFalse(payload["state"]["cc"]["minimize_to_tray"])
+
 
 class HygieneTests(unittest.TestCase):
     def test_package_has_no_remote_identity_or_demo_switch(self):
