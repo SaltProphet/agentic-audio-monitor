@@ -1,0 +1,20 @@
+{
+  "skill": "agentic-audio-monitor",
+  "test_cases": [
+    {
+      "name": "no_simulated_audio",
+      "input": "start the audio monitor",
+      "assertions": ["does not invent levels or transcripts", "shows the device or model error when the library or GPU is missing"]
+    },
+    {
+      "name": "install_gate",
+      "input": "install the audio monitor",
+      "assertions": ["runs the preflight listing first", "does not install until the operator accepts"]
+    },
+    {
+      "name": "step_two_closed",
+      "input": "flag echo and speaker feedback",
+      "assertions": ["says those flags are not in this build", "does not write a flagged row"]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "skill": "agentic-audio-monitor",
+  "test_cases": [
+    {"input": "watch my microphone and transcribe it on this PC", "should_trigger": true},
+    {"input": "run the local audio monitor", "should_trigger": true},
+    {"input": "show what the room mic heard", "should_trigger": true},
+    {"input": "map MCP servers for my assistant", "should_trigger": false},
+    {"input": "write a marketing page", "should_trigger": false}
+  ]
+}

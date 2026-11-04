@@ -1,0 +1,25 @@
+# Audio Monitor config. The local page rewrites this file when you save.
+# echo and idle_speech are stored but are not acted on in this build.
+
+device_name = ""
+device_hostapi = ""
+device_index = -1
+sensitivity = 0.55
+save_clips = false
+retention_days = 7
+model = "small"
+model_path = ""
+language = "en"
+task = "transcribe"
+compute_device = "cuda"
+compute_type = "float16"
+allow_cpu = false
+offline = false
+host = "127.0.0.1"
+port = 8765
+source_mode = "external"
+
+[flags]
+echo = false
+idle_speech = false
+loopback = false

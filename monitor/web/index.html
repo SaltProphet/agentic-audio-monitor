@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Audio Monitor</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #121410;
+    --panel: #1c1f19;
+    --ink: #d8ddd0;
+    --dim: #8e9586;
+    --line: #34392f;
+    --sage: #8fa87a;
+    --amber: #d7a15f;
+    --rust: #c45c3e;
+    --paper: #eceee6;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.45 "Segoe UI", Candara, sans-serif;
+    min-height: 100vh;
+  }
+  header, main, footer, .package { width: min(1080px, calc(100% - 28px)); margin-left: auto; margin-right: auto; }
+  header { padding: 28px 0 8px; display: flex; justify-content: space-between; gap: 16px; align-items: end; }
+  h1 { font-size: 32px; line-height: 1; margin: 0; font-weight: 620; letter-spacing: -0.03em; }
+  h2 { margin: 0 0 12px; font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); font-weight: 650; }
+  .kicker { margin: 0 0 8px; color: var(--sage); letter-spacing: 0.16em; text-transform: uppercase; font-size: 12px; }
+  .step { margin: 0; color: var(--dim); max-width: 280px; text-align: right; }
+  .grid { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 18px; }
+  article, .log, .settings { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+  label { display: block; margin: 10px 0 6px; color: var(--dim); font-size: 13px; }
+  select, input, button { font: inherit; color: var(--ink); }
+  select, input[type="number"], input[type="text"] {
+    width: 100%; background: #121410; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-height: 44px;
+  }
+  button {
+    margin-top: 10px; background: var(--paper); color: #171910; border: 0; border-radius: 8px;
+    min-height: 44px; padding: 0 14px; cursor: pointer; font-weight: 650;
+  }
+  button.secondary { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+  button:disabled { opacity: 0.55; cursor: wait; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .row button { margin-top: 0; }
+  .meter { position: relative; height: 28px; margin-top: 8px; background: #10120e; border-radius: 999px; overflow: hidden; border: 1px solid var(--line); }
+  #fill { height: 100%; width: 0%; background: linear-gradient(90deg, #3d5140, var(--sage) 70%, var(--amber)); }
+  #gate { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--paper); opacity: 0.7; left: 0; }
+  .readout { font-variant-numeric: tabular-nums; margin: 8px 0 0; }
+  .lamp { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #3a3f36; margin-right: 8px; vertical-align: 0; }
+  .lamp.speech { background: var(--amber); }
+  .lamp.silence { background: var(--sage); }
+  #heard { min-height: 4.5em; white-space: pre-wrap; font-family: "Cascadia Mono", Consolas, ui-monospace, monospace; font-size: 30px; line-height: 1.25; margin: 8px 0; }
+  .note, .msg, .warn { color: var(--dim); margin: 8px 0 0; }
+  .warn { color: var(--amber); }
+  .err { color: #e0b0a4; }
+  .checks { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; }
+  .checks label { display: flex; gap: 8px; align-items: center; margin: 0; color: var(--ink); }
+  .cc-state { margin: 8px 0 0; color: var(--sage); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--dim); font-weight: 650; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .scroll { overflow-x: auto; }
+  footer { color: var(--dim); padding: 18px 0 32px; font-size: 13px; }
+  .package { margin: 14px 0 0; }
+  .package a {
+    display: inline-block; background: var(--paper); color: #171910; text-decoration: none;
+    border-radius: 8px; min-height: 44px; line-height: 44px; padding: 0 16px; font-weight: 650; margin-right: 12px;
+  }
+  .package span { color: var(--dim); }
+  @media (min-width: 860px) {
+    .grid { grid-template-columns: 1.15fr 0.85fr; }
+    .settings, .log { grid-column: 1 / -1; }
+  }
+  @media (max-width: 640px) {
+    header { flex-direction: column; align-items: start; }
+    .step { text-align: left; }
+    h1 { font-size: 28px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <p class="kicker">On this machine</p>
+    <h1>Audio Monitor</h1>
+  </div>
+  <p class="step" id="step">Step 1. Capture, level, transcription, and a local log.</p>
+</header>
+<p class="package" id="get-package" hidden><a href="/package.zip" download="agentic-audio-monitor.zip">Download Audio Monitor for Windows</a><span>Extract it, double-click setup.bat, then type YES.</span></p>
+<main>
+  <p class="warn" id="banner"></p>
+  <div class="grid">
+    <article>
+      <h2>Newest caption</h2>
+      <p class="note" id="model-note">Speech model is not loaded.</p>
+      <button id="load-model" type="button">Load speech model</button>
+      <p id="heard" aria-live="polite">No transcript yet.</p>
+      <p class="note" id="heard-note"></p>
+      <p class="note" id="count"></p>
+    </article>
+    <article>
+      <h2>Input</h2>
+      <label for="device">Device</label>
+      <select id="device"></select>
+      <div class="row">
+        <button id="use-device" type="button">Use this device</button>
+        <button id="refresh-devices" class="secondary" type="button">Refresh devices</button>
+      </div>
+      <p class="msg" id="device-msg"></p>
+      <p class="note">Active source: <strong id="source">microphone</strong></p>
+      <h2 style="margin-top:22px">Level</h2>
+      <div class="meter" aria-hidden="true"><div id="fill"></div><div id="gate"></div></div>
+      <p class="readout" id="level-readout">not capturing</p>
+      <p><span id="lamp" class="lamp"></span>Voice activity <strong id="vad">off</strong></p>
+    </article>
+    <section class="settings">
+      <h2>Settings</h2>
+      <form id="settings">
+        <label for="sensitivity">Sensitivity <span id="sens-val">0.55</span> — higher hears quieter sound</label>
+        <input id="sensitivity" type="range" min="0" max="1" step="0.01" value="0.55">
+        <div class="checks">
+          <label><input id="save-clips" type="checkbox"> Save a WAV of each transcript</label>
+          <label><input id="offline" type="checkbox"> Offline (do not download weights)</label>
+          <label><input id="allow-cpu" type="checkbox"> Allow CPU transcription</label>
+          <label for="source-mode">Audio sources</label>
+          <select id="source-mode">
+            <option value="external">External microphone only</option>
+            <option value="system">System audio only (WASAPI loopback)</option>
+            <option value="both">External microphone + system audio</option>
+          </select>
+        </div>
+        <label for="retention">Keep logs and clips this many days</label>
+        <input id="retention" type="number" min="1" max="3650" step="1" value="7">
+        <label for="model">Speech model</label>
+        <select id="model">
+          <option>tiny</option><option>tiny.en</option><option>base</option><option>base.en</option>
+          <option selected>small</option><option>small.en</option><option>medium</option><option>medium.en</option>
+          <option>large-v3</option>
+        </select>
+        <label for="language">Language code (blank lets the model choose)</label>
+        <input id="language" type="text" maxlength="8" value="en">
+        <label for="task">Task</label>
+        <select id="task"><option value="transcribe">Transcribe</option><option value="translate">Translate to English</option></select>
+        <label for="compute-device">Transcription device</label>
+        <select id="compute-device"><option value="cuda" selected>cuda</option><option value="cpu">cpu</option></select>
+        <label for="compute-type">Compute type</label>
+        <select id="compute-type">
+          <option value="float16" selected>float16</option>
+          <option value="int8_float16">int8_float16</option>
+          <option value="int8">int8</option>
+        </select>
+        <button type="submit">Save settings</button>
+        <p class="msg" id="settings-msg"></p>
+      </form>
+    </section>
+    <section class="settings">
+      <h2>Closed captions</h2>
+      <form id="cc-settings">
+        <div class="checks">
+          <label><input id="cc-enabled" type="checkbox"> Show captions on the desktop</label>
+        </div>
+        <p class="cc-state" id="cc-status">Closed captions are off.</p>
+        <label for="cc-font-size">Font size</label>
+        <input id="cc-font-size" type="number" min="12" max="96" step="1" value="34">
+        <label for="cc-opacity">Caption background opacity <span id="cc-opacity-val">0.55</span></label>
+        <input id="cc-opacity" type="range" min="0.1" max="1" step="0.05" value="0.55">
+        <label for="cc-max-width">Maximum caption width</label>
+        <input id="cc-max-width" type="number" min="240" max="2000" step="10" value="720">
+        <label for="cc-timeout">Caption timeout in seconds <span class="note">(0 keeps captions until replaced)</span></label>
+        <input id="cc-timeout" type="number" min="0" max="120" step="0.5" value="8">
+        <button type="submit">Apply caption settings</button>
+        <p class="msg" id="cc-settings-msg"></p>
+      </form>
+      <div class="row">
+        <button id="cc-unlock" class="secondary" type="button">Unlock / Move captions</button>
+        <button id="cc-lock" type="button">Lock captions</button>
+        <button id="cc-reset" class="secondary" type="button">Reset position</button>
+      </div>
+      <p class="note">Locked captions stay above other windows and click through to the application underneath. Unlock to move or resize them.</p>
+    </section>
+    <section class="log">
+      <h2>Log</h2>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr><th>Time</th><th>Transcript</th><th>Flag</th><th>Confidence</th><th>Clip</th></tr>
+          </thead>
+          <tbody id="log-body"></tbody>
+        </table>
+      </div>
+      <p class="note" id="log-empty">No speech logged yet.</p>
+    </section>
+  </div>
+</main>
+<footer>
+  Nothing is uploaded. Echo, idle speech, and speaker match are not in this build.
+  The first model load is the only time weights are fetched, and only if they are not already in the models folder.
+</footer>
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  let formReady = false;
+  let ccFormReady = false;
+
+  function dbfs(level) {
+    if (!level || level < 1e-9) return -90;
+    return 20 * Math.log10(level);
+  }
+  function percent(db) {
+    return ((Math.max(-60, Math.min(0, db)) + 60) / 60) * 100;
+  }
+  function setMeter(data) {
+    const fill = $("fill");
+    const gate = $("gate");
+    const lamp = $("lamp");
+    const vad = $("vad");
+    if (!data.capturing) {
+      fill.style.width = "0%";
+      gate.style.left = "0%";
+      lamp.className = "lamp";
+      vad.textContent = "off";
+      $("level-readout").textContent = data.capture_error || "not capturing";
+      return;
+    }
+    fill.style.width = percent(data.db) + "%";
+    gate.style.left = percent(dbfs(data.threshold)) + "%";
+    const state = data.vad === "speech" ? "speech" : "silence";
+    lamp.className = "lamp " + state;
+    vad.textContent = state;
+    let line = Number(data.db).toFixed(1) + " dBFS";
+    if (data.overflows) line += " · input overflow " + data.overflows;
+    if (data.capture_status) line += " · " + data.capture_status;
+    $("level-readout").textContent = line;
+  }
+  function fillForm(data) {
+    if (formReady) return;
+    $("sensitivity").value = data.sensitivity;
+    $("sens-val").textContent = Number(data.sensitivity).toFixed(2);
+    $("save-clips").checked = Boolean(data.save_clips);
+    $("offline").checked = Boolean(data.offline);
+    $("allow-cpu").checked = Boolean(data.allow_cpu);
+    $("source-mode").value = data.source_mode || (data.loopback ? "system" : "external");
+    $("retention").value = data.retention_days;
+    $("model").value = data.model;
+    $("language").value = data.language || "";
+    $("task").value = data.task || "transcribe";
+    $("compute-device").value = data.compute_device;
+    if ([...$("compute-type").options].some((opt) => opt.value === data.compute_type)) {
+      $("compute-type").value = data.compute_type;
+    }
+    formReady = true;
+  }
+  function renderLog(events) {
+    const body = $("log-body");
+    body.textContent = "";
+    const rows = Array.isArray(events) ? events : [];
+    $("log-empty").hidden = rows.length > 0;
+    rows.forEach((record) => {
+      const tr = document.createElement("tr");
+      [record.ts || "", record.transcript || "", record.flagged ? (record.reason || "flagged") : "—",
+        record.confidence == null ? "" : String(record.confidence)].forEach((text) => {
+        const td = document.createElement("td");
+        td.textContent = text;
+        tr.appendChild(td);
+      });
+      const clip = document.createElement("td");
+      const name = String(record.clip || "").split("/").pop();
+      if (/^[A-Za-z0-9._-]+\.wav$/.test(name)) {
+        const link = document.createElement("a");
+        link.href = "/clips/" + name;
+        link.textContent = "wav";
+        clip.appendChild(link);
+      }
+      tr.appendChild(clip);
+      body.appendChild(tr);
+    });
+  }
+  function fillCC(data) {
+    if (ccFormReady) return;
+    $("cc-enabled").checked = Boolean(data.enabled);
+    $("cc-font-size").value = data.font_size;
+    $("cc-opacity").value = data.opacity;
+    $("cc-opacity-val").textContent = Number(data.opacity).toFixed(2);
+    $("cc-max-width").value = data.max_width;
+    $("cc-timeout").value = data.caption_timeout;
+    ccFormReady = true;
+  }
+  function renderCC(data) {
+    if (!data || typeof data !== "object") return;
+    fillCC(data);
+    const status = $("cc-status");
+    if (!data.enabled) {
+      status.textContent = "Closed captions are off.";
+    } else if (data.error) {
+      status.textContent = "Closed captions unavailable: " + data.error;
+    } else if (!data.running) {
+      status.textContent = "Closed captions are starting...";
+    } else {
+      status.textContent = data.click_through
+        ? "Closed captions are on and locked."
+        : "Closed captions are on and unlocked for moving.";
+    }
+    $("cc-unlock").disabled = !data.enabled || !data.running || !data.click_through;
+    $("cc-lock").disabled = !data.enabled || !data.running || data.click_through;
+  }
+  async function postCC(patch, messageTarget) {
+    const res = await fetch("/api/cc", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch)
+    });
+    const data = await res.json();
+    if (data.state) {
+      render(data.state);
+    }
+    if (messageTarget) $(messageTarget).textContent = data.message || "";
+    if (!res.ok) throw new Error(data.message || "Closed-caption settings were rejected.");
+    return data;
+  }
+  function render(data) {
+    setMeter(data);
+    $("source").textContent = data.capturing
+      ? (data.source || "unknown")
+      : (data.capture_error ? "unavailable" : "not capturing");
+    fillForm(data);
+    const flags = Array.isArray(data.ignored_flags) ? data.ignored_flags : [];
+    $("banner").textContent = flags.length
+      ? "Set in config but not acted on in this build: " + flags.join(", ")
+      : (data.bind_warning || "");
+    $("model-note").textContent = data.model_note || data.model_error || "";
+    $("model-note").className = data.model_state === "error" ? "note err" : "note";
+    const load = $("load-model");
+    load.disabled = data.model_state === "loading";
+    load.textContent = data.model_state === "ready" ? "Reload speech model"
+      : (data.model_state === "loading" ? "Loading speech model" : "Load speech model");
+    $("heard").textContent = data.last_transcript ? data.last_transcript : "No transcript yet.";
+    $("heard-note").textContent = data.last_note || "";
+    const missed = Number(data.untranscribed || 0);
+    const dropped = Number(data.dropped || 0);
+    const bits = [];
+    if (missed) bits.push(missed + " utterance(s) heard before the model was ready. No text was filled in.");
+    if (dropped) bits.push(dropped + " utterance(s) dropped because transcription was behind.");
+    $("count").textContent = bits.join(" ");
+    const device = data.device;
+    $("device-msg").textContent = device
+      ? "Using " + device.name + (device.hostapi ? " · " + device.hostapi : "")
+      : ($("device-msg").dataset.err || "");
+    renderLog(data.recent_events);
+    renderCC(data.cc);
+  }
+  async function loadState() {
+    const res = await fetch("/api/state", { cache: "no-store" });
+    if (!res.ok) throw new Error("status " + res.status);
+    render(await res.json());
+  }
+  async function loadDevices() {
+    const res = await fetch("/api/devices", { cache: "no-store" });
+    const data = await res.json();
+    const sel = $("device");
+    sel.textContent = "";
+    if (data.error) {
+      $("device-msg").dataset.err = data.error;
+      $("device-msg").textContent = data.error;
+      return;
+    }
+    const devices = Array.isArray(data.devices) ? data.devices : [];
+    if (!devices.length) {
+      $("device-msg").dataset.err = "No input devices reported.";
+      $("device-msg").textContent = "No input devices reported.";
+      return;
+    }
+    $("device-msg").dataset.err = "";
+    devices.forEach((device) => {
+      const opt = document.createElement("option");
+      opt.value = JSON.stringify({ index: device.index, name: device.name, hostapi: device.hostapi });
+      opt.textContent = device.name + " — " + device.hostapi + (device.is_default ? " (system default)" : "");
+      sel.appendChild(opt);
+    });
+  }
+  $("sensitivity").addEventListener("input", () => {
+    $("sens-val").textContent = Number($("sensitivity").value).toFixed(2);
+  });
+  $("refresh-devices").addEventListener("click", () => {
+    loadDevices().catch((err) => { $("device-msg").textContent = String(err.message || err); });
+  });
+  $("use-device").addEventListener("click", async () => {
+    const raw = $("device").value;
+    if (!raw) {
+      $("device-msg").textContent = "No device is selected.";
+      return;
+    }
+    const res = await fetch("/api/device", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: raw
+    });
+    const data = await res.json();
+    if (data.state) {
+      formReady = false;
+      render(data.state);
+    }
+    if (!data.ok) $("device-msg").textContent = data.message || "The device was not opened.";
+  });
+  $("load-model").addEventListener("click", async () => {
+    const res = await fetch("/api/model/load", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}"
+    });
+    const data = await res.json();
+    if (data.state) render(data.state);
+    if (!data.ok && data.message) $("model-note").textContent = data.message;
+  });
+  $("settings").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const payload = {
+      sensitivity: Number($("sensitivity").value),
+      save_clips: $("save-clips").checked,
+      offline: $("offline").checked,
+      allow_cpu: $("allow-cpu").checked,
+      source_mode: $("source-mode").value,
+      retention_days: Number($("retention").value),
+      model: $("model").value,
+      language: $("language").value.trim(),
+      task: $("task").value,
+      compute_device: $("compute-device").value,
+      compute_type: $("compute-type").value
+    };
+    const res = await fetch("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.state) {
+      formReady = false;
+      render(data.state);
+    }
+    $("settings-msg").textContent = data.message || "";
+  });
+  $("cc-opacity").addEventListener("input", () => {
+    $("cc-opacity-val").textContent = Number($("cc-opacity").value).toFixed(2);
+  });
+  $("cc-enabled").addEventListener("change", () => {
+    postCC({ enabled: $("cc-enabled").checked }, "cc-settings-msg").catch((err) => {
+      $("cc-settings-msg").textContent = String(err.message || err);
+    });
+  });
+  $("cc-settings").addEventListener("submit", (event) => {
+    event.preventDefault();
+    postCC({
+      enabled: $("cc-enabled").checked,
+      font_size: Number($("cc-font-size").value),
+      opacity: Number($("cc-opacity").value),
+      max_width: Number($("cc-max-width").value),
+      caption_timeout: Number($("cc-timeout").value)
+    }, "cc-settings-msg").catch((err) => {
+      $("cc-settings-msg").textContent = String(err.message || err);
+    });
+  });
+  $("cc-unlock").addEventListener("click", () => {
+    postCC({ click_through: false }, "cc-settings-msg").catch((err) => {
+      $("cc-settings-msg").textContent = String(err.message || err);
+    });
+  });
+  $("cc-lock").addEventListener("click", () => {
+    postCC({ click_through: true }, "cc-settings-msg").catch((err) => {
+      $("cc-settings-msg").textContent = String(err.message || err);
+    });
+  });
+  $("cc-reset").addEventListener("click", () => {
+    postCC({ reset_position: true }, "cc-settings-msg").catch((err) => {
+      $("cc-settings-msg").textContent = String(err.message || err);
+    });
+  });
+  const live = new EventSource("/api/live");
+  live.onmessage = (event) => {
+    try { setMeter(JSON.parse(event.data)); } catch (err) { /* ignore a bad tick */ }
+  };
+  live.onerror = () => {
+    if (live.readyState === EventSource.CLOSED) {
+      $("level-readout").textContent = "live level disconnected";
+    }
+  };
+  loadDevices().catch((err) => { $("device-msg").textContent = String(err.message || err); });
+  loadState().catch((err) => { $("level-readout").textContent = "Could not read status: " + (err.message || err); });
+  setInterval(() => {
+    loadState().catch(() => {});
+  }, 2000);
+})();
+</script>
+</body>
+</html>
