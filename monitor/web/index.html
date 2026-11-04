@@ -7,80 +7,138 @@
 <style>
   :root {
     color-scheme: dark;
-    --bg: #121410;
-    --panel: #1c1f19;
-    --ink: #d8ddd0;
-    --dim: #8e9586;
-    --line: #34392f;
-    --sage: #8fa87a;
-    --amber: #d7a15f;
-    --rust: #c45c3e;
-    --paper: #eceee6;
+    --bg: #090c10;
+    --surface: #11161d;
+    --surface-raised: #171e27;
+    --surface-input: #0c1117;
+    --ink: #e7edf4;
+    --dim: #9ba9b9;
+    --muted: #718193;
+    --line: #293440;
+    --line-strong: #3a4958;
+    --teal: #47c7c0;
+    --orange: #ea9157;
+    --red: #e47878;
+    --green: #6dc5a0;
+    --focus: #7edcd4;
   }
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   html, body { margin: 0; padding: 0; }
   body {
-    background: var(--bg);
-    color: var(--ink);
-    font: 16px/1.45 "Segoe UI", Candara, sans-serif;
     min-height: 100vh;
+    background: radial-gradient(circle at 80% -20%, #17222b 0%, transparent 35%), var(--bg);
+    color: var(--ink);
+    font: 15px/1.5 "Segoe UI", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
-  header, main, footer, .package { width: min(1080px, calc(100% - 28px)); margin-left: auto; margin-right: auto; }
-  header { padding: 28px 0 8px; display: flex; justify-content: space-between; gap: 16px; align-items: end; }
-  h1 { font-size: 32px; line-height: 1; margin: 0; font-weight: 620; letter-spacing: -0.03em; }
-  h2 { margin: 0 0 12px; font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); font-weight: 650; }
-  .kicker { margin: 0 0 8px; color: var(--sage); letter-spacing: 0.16em; text-transform: uppercase; font-size: 12px; }
-  .version { margin: 8px 0 0; color: var(--dim); font-size: 12px; font-variant-numeric: tabular-nums; }
-  .step { margin: 0; color: var(--dim); max-width: 280px; text-align: right; }
-  .grid { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 18px; }
-  article, .log, .settings { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
-  label { display: block; margin: 10px 0 6px; color: var(--dim); font-size: 13px; }
-  select, input, button { font: inherit; color: var(--ink); }
+  header, main, footer, .package { width: min(1440px, calc(100% - 48px)); margin-inline: auto; }
+  header {
+    min-height: 112px;
+    padding: 24px 0 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+    border-bottom: 1px solid var(--line);
+  }
+  h1 { margin: 0; font-size: clamp(27px, 2.8vw, 38px); line-height: 1.1; font-weight: 690; letter-spacing: -0.045em; }
+  h2 { margin: 0 0 18px; font-size: 12px; line-height: 1.3; letter-spacing: .12em; text-transform: uppercase; color: #b5c5d3; font-weight: 750; }
+  .kicker { margin: 0 0 7px; color: var(--teal); letter-spacing: .18em; text-transform: uppercase; font-size: 11px; font-weight: 750; }
+  .version { margin: 9px 0 0; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .step { margin: 0; max-width: 360px; text-align: right; color: var(--dim); font-size: 13px; }
+  main { padding: 22px 0 14px; }
+  #banner:not(:empty) { margin: 0 0 16px; padding: 12px 14px; border: 1px solid #604434; border-radius: 10px; background: #271b16; }
+  .grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(330px, .85fr); gap: 16px; align-items: stretch; }
+  article, .log, .settings {
+    min-width: 0;
+    background: linear-gradient(155deg, #151b23, var(--surface));
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    padding: 22px 24px;
+    box-shadow: 0 8px 28px #00000025;
+  }
+  .grid > article:first-child { border-top: 2px solid var(--teal); min-height: 330px; }
+  .grid > article:nth-child(2) { border-top: 2px solid #566b7b; }
+  .log { grid-column: 1 / -1; order: 1; }
+  .settings { order: 2; align-self: start; }
+  .settings + .settings { order: 3; }
+  label { display: block; margin: 14px 0 6px; color: #b3c0cd; font-size: 13px; font-weight: 550; }
+  select, input, button { font: inherit; }
   select, input[type="number"], input[type="text"] {
-    width: 100%; background: #121410; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-height: 44px;
+    width: 100%; min-height: 44px; padding: 10px 12px;
+    background: var(--surface-input); color: var(--ink);
+    border: 1px solid var(--line-strong); border-radius: 8px;
   }
+  select { text-overflow: ellipsis; }
+  input[type="range"], input[type="checkbox"] { accent-color: var(--teal); }
+  input[type="range"] { width: 100%; cursor: pointer; }
   button {
-    margin-top: 10px; background: var(--paper); color: #171910; border: 0; border-radius: 8px;
-    min-height: 44px; padding: 0 14px; cursor: pointer; font-weight: 650;
+    margin-top: 12px; min-height: 44px; padding: 0 17px;
+    background: var(--teal); color: #051517; border: 1px solid transparent;
+    border-radius: 8px; font-weight: 750; cursor: pointer;
+    transition: background .15s ease, border-color .15s ease, transform .15s ease;
   }
-  button.secondary { background: transparent; color: var(--ink); border: 1px solid var(--line); }
-  button:disabled { opacity: 0.55; cursor: wait; }
-  button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
-  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-  .row button { margin-top: 0; }
-  .meter { position: relative; height: 28px; margin-top: 8px; background: #10120e; border-radius: 999px; overflow: hidden; border: 1px solid var(--line); }
-  #fill { height: 100%; width: 0%; background: linear-gradient(90deg, #3d5140, var(--sage) 70%, var(--amber)); }
-  #gate { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--paper); opacity: 0.7; left: 0; }
-  .readout { font-variant-numeric: tabular-nums; margin: 8px 0 0; }
-  .lamp { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #3a3f36; margin-right: 8px; vertical-align: 0; }
-  .lamp.speech { background: var(--amber); }
-  .lamp.silence { background: var(--sage); }
-  #heard { min-height: 4.5em; white-space: pre-wrap; font-family: "Cascadia Mono", Consolas, ui-monospace, monospace; font-size: 30px; line-height: 1.25; margin: 8px 0; }
-  .note, .msg, .warn { color: var(--dim); margin: 8px 0 0; }
-  .warn { color: var(--amber); }
-  .err { color: #e0b0a4; }
-  .checks { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; }
-  .checks label { display: flex; gap: 8px; align-items: center; margin: 0; color: var(--ink); }
-  .cc-state { margin: 8px 0 0; color: var(--sage); }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
-  th { color: var(--dim); font-weight: 650; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
-  .scroll { overflow-x: auto; }
-  footer { color: var(--dim); padding: 18px 0 32px; font-size: 13px; }
-  .package { margin: 14px 0 0; }
-  .package a {
-    display: inline-block; background: var(--paper); color: #171910; text-decoration: none;
-    border-radius: 8px; min-height: 44px; line-height: 44px; padding: 0 16px; font-weight: 650; margin-right: 12px;
+  button:hover:not(:disabled) { background: #72d7d1; }
+  button:active:not(:disabled) { transform: translateY(1px); }
+  button.secondary { background: var(--surface-raised); color: var(--ink); border-color: var(--line-strong); }
+  button.secondary:hover:not(:disabled) { background: #263441; border-color: #61768a; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible {
+    outline: 3px solid var(--focus); outline-offset: 3px;
   }
-  .package span { color: var(--dim); }
-  @media (min-width: 860px) {
-    .grid { grid-template-columns: 1.15fr 0.85fr; }
-    .settings, .log { grid-column: 1 / -1; }
+  .row { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .row button { margin-top: 10px; }
+  .meter { position: relative; height: 22px; margin-top: 12px; background: #070b10; border: 1px solid var(--line-strong); border-radius: 5px; overflow: hidden; }
+  .meter::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(90deg, transparent 0, transparent calc(10% - 1px), #06090e 10%); opacity: .5; }
+  #fill { height: 100%; width: 0; background: linear-gradient(90deg, #287e88, var(--teal) 72%, var(--orange)); transition: width .09s linear; }
+  #gate { position: absolute; inset-block: 0; width: 2px; left: 0; background: #f2f7fa; z-index: 1; }
+  .readout { margin: 9px 0 12px; font-variant-numeric: tabular-nums; font: 600 15px/1.4 "Cascadia Code", Consolas, monospace; color: #d5e6ef; }
+  .lamp { display: inline-block; width: 9px; height: 9px; margin-right: 7px; border-radius: 50%; background: #657282; }
+  .lamp.speech { background: var(--orange); box-shadow: 0 0 0 4px #ea915721; }
+  .lamp.silence { background: var(--teal); }
+  #heard {
+    margin: 22px 0 14px; min-height: 116px; white-space: pre-wrap;
+    font: 550 clamp(24px, 2.8vw, 36px)/1.35 "Segoe UI", system-ui, sans-serif;
+    letter-spacing: -.02em;
+    overflow-wrap: anywhere;
+  }
+  .note, .msg, .warn { margin: 9px 0 0; color: var(--dim); font-size: 13px; overflow-wrap: anywhere; }
+  .warn { color: #f2b38c; }
+  .err { color: var(--red); }
+  .checks { display: flex; gap: 9px 20px; flex-wrap: wrap; margin: 12px 0 14px; }
+  .checks label { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--ink); font-weight: 450; }
+  .checks input[type="checkbox"] { width: 17px; height: 17px; flex: none; }
+  .checks select { flex-basis: 100%; }
+  .cc-state { margin: 12px 0; color: var(--teal); font-size: 13px; }
+  .scroll { overflow-x: auto; max-height: 390px; overflow-y: auto; scrollbar-color: #435465 #11161d; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 12px 14px 12px 4px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+  td { overflow-wrap: anywhere; }
+  th { position: sticky; top: 0; z-index: 1; background: var(--surface); color: var(--muted); font-weight: 750; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+  tbody tr:hover { background: #202b35; }
+  a { color: #78d9d3; text-underline-offset: 3px; }
+  footer { padding: 17px 0 30px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+  .package { margin-top: 14px; }
+  .package a { display: inline-block; min-height: 44px; line-height: 44px; padding: 0 16px; border-radius: 8px; background: var(--teal); color: #051517; font-weight: 700; text-decoration: none; margin-right: 12px; }
+  .package span { color: var(--dim); font-size: 13px; }
+  @media (max-width: 960px) {
+    .grid { grid-template-columns: minmax(0, 1fr); }
+    .log, .settings { grid-column: 1; }
+    .grid > article:first-child { min-height: 260px; }
   }
   @media (max-width: 640px) {
-    header { flex-direction: column; align-items: start; }
-    .step { text-align: left; }
-    h1 { font-size: 28px; }
+    header, main, footer, .package { width: min(100% - 24px, 1440px); }
+    header { align-items: flex-start; flex-direction: column; gap: 12px; }
+    .step { max-width: none; text-align: left; }
+    article, .log, .settings { padding: 17px; }
+    .grid { gap: 12px; }
+    .row button { flex: 1 1 auto; }
+    th, td { padding-right: 10px; }
+    #heard { min-height: 80px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: .01ms !important; scroll-behavior: auto !important; }
   }
 </style>
 </head>
@@ -91,14 +149,14 @@
     <h1>Audio Monitor</h1>
     <p class="version" id="app-version">Version 0.1.0</p>
   </div>
-  <p class="step" id="step">Step 1. Capture, level, transcription, and a local log.</p>
+  <p class="step" id="step">Live audio capture · On-device transcription · Local history</p>
 </header>
 <p class="package" id="get-package" hidden><a href="/package.zip" download="agentic-audio-monitor.zip">Download Audio Monitor for Windows</a><span>Extract it, double-click setup.bat, then type YES.</span></p>
 <main>
   <p class="warn" id="banner"></p>
   <div class="grid">
     <article>
-      <h2>Newest caption</h2>
+      <h2>Live transcript</h2>
       <p class="note" id="model-note">Speech model is not loaded.</p>
       <button id="load-model" type="button">Load speech model</button>
       <p id="heard" aria-live="polite">No transcript yet.</p>
@@ -106,7 +164,7 @@
       <p class="note" id="count"></p>
     </article>
     <article>
-      <h2>Input</h2>
+      <h2>Capture &amp; signal</h2>
       <label for="device">Device</label>
       <select id="device"></select>
       <div class="row">
@@ -205,7 +263,7 @@
       <p class="note">Locked captions stay above other windows and click through to the application underneath. Unlock to move or resize them.</p>
     </section>
     <section class="log">
-      <h2>Log</h2>
+      <h2>Transcript history</h2>
       <div class="scroll">
         <table>
           <thead>
