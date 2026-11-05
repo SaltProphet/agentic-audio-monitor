@@ -37,6 +37,7 @@ class CaptionControllerTests(unittest.TestCase):
             self.assertFalse(state["enabled"])
             self.assertTrue(state["click_through"])
             self.assertEqual(state["opacity"], 0.55)
+            self.assertEqual(state["caption_timeout"], 0.0)
 
             ok, message = controller.apply({"enabled": True, "font_size": 42, "opacity": 0.3})
             self.assertTrue(ok, message)

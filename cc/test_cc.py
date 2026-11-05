@@ -44,6 +44,7 @@ class CompanionStateTests(unittest.TestCase):
             self.assertIn("enabled", config)
             self.assertFalse(config["enabled"])
             self.assertTrue(config["click_through"])
+            self.assertEqual(config["caption_timeout"], 0.0)
 
             config["enabled"] = True
             config["font_size"] = 42

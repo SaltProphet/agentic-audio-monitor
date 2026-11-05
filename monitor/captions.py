@@ -17,7 +17,7 @@ DEFAULTS = {
     "font_size": 34,
     "opacity": 0.55,
     "max_width": 720,
-    "caption_timeout": 8.0,
+    "caption_timeout": 0.0,
     "click_through": True,
     "minimize_to_tray": True,
     "position_revision": 0,
