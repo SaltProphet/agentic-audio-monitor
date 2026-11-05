@@ -64,6 +64,16 @@ class SignalTests(unittest.TestCase):
         self.assertGreater(len(heard[0].samples), 7200)
         self.assertEqual(segmenter.state(), "silence")
 
+    def test_segmenter_exposes_a_partial_speech_window(self):
+        segmenter = Segmenter(16000, 0.55)
+        segmenter.push([0.3] * 3 * 16000)
+
+        partial = segmenter.partial(2.0)
+
+        self.assertIsNotNone(partial)
+        self.assertEqual(len(partial.samples), 2 * 16000)
+        self.assertEqual(segmenter.state(), "speech")
+
 
 class ConfigTests(unittest.TestCase):
     def test_task_validates_and_roundtrips(self):
@@ -201,6 +211,23 @@ class EngineTests(unittest.TestCase):
 
             self.assertEqual(first_id, 1)
             self.assertEqual(engine.snapshot()["last_transcript_id"], 2)
+            engine.stop()
+
+    def test_partial_transcription_keeps_only_the_latest_pending_window(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "config.toml"
+            engine = Engine(ensure_config(path), path)
+            first = SimpleNamespace(started_at=1_700_000_000, samples=[0.1] * 160, level=0.1)
+            second = SimpleNamespace(started_at=1_700_000_001, samples=[0.2] * 160, level=0.2)
+            engine.model_state = "ready"
+            engine.model = object()
+
+            engine._enqueue_partial(first)
+            engine._enqueue_partial(second)
+
+            self.assertIs(engine.partial_job, second)
+            engine._enqueue(first)
+            self.assertIsNone(engine.partial_job)
             engine.stop()
 
 

@@ -48,6 +48,10 @@ class Engine:
         self.model_note = "Speech model is not loaded."
         self.model_gen = 0
         self.queue: list = []
+        self.partial_job = None
+        self.partial_mark = 0
+        self.partial_interval = int(2.0 * 16000)
+        self.partial_window = 4.0
         self.untranscribed = 0
         self.dropped = 0
         self.last_transcript = ""
@@ -279,11 +283,20 @@ class Engine:
             if not self.capturing:
                 return
             utterances = self.segmenter.push(audio)
+            partial = None
+            if self.model_state == "ready" and self.model is not None and self.segmenter.in_speech:
+                if len(self.segmenter.buffer) - self.partial_mark >= self.partial_interval:
+                    partial = self.segmenter.partial(self.partial_window)
+                    self.partial_mark = len(self.segmenter.buffer)
+            elif not self.segmenter.in_speech:
+                self.partial_mark = 0
             self.rms = level
             self.peak = max(peak(raw), self.peak * 0.85)
             self.input_rate = int(rate)
         for utterance in utterances:
             self._enqueue(utterance)
+        if partial is not None:
+            self._enqueue_partial(partial)
 
     def on_status(self, status: str, overflows: int) -> None:
         with self.lock:
@@ -292,6 +305,7 @@ class Engine:
 
     def _enqueue(self, utterance) -> None:
         with self.cv:
+            self.partial_job = None
             if self.model_state == "ready" and self.model is not None:
                 if len(self.queue) >= 4:
                     self.queue.pop(0)
@@ -306,13 +320,22 @@ class Engine:
             else:
                 self.untranscribed += 1
 
+    def _enqueue_partial(self, utterance) -> None:
+        with self.cv:
+            if self.model_state == "ready" and self.model is not None:
+                self.partial_job = utterance
+                self.cv.notify()
+
     def _transcribe_loop(self) -> None:
         while not self.stop_event.is_set():
             with self.cv:
-                if self.model_state != "ready" or self.model is None or not self.queue:
+                if self.model_state != "ready" or self.model is None or (not self.queue and self.partial_job is None):
                     self.cv.wait(timeout=0.3)
                     continue
-                utterance = self.queue.pop(0)
+                is_partial = not self.queue
+                utterance = self.partial_job if is_partial else self.queue.pop(0)
+                if is_partial:
+                    self.partial_job = None
                 model = self.model
                 language = self.cfg.language
                 task = self.cfg.task
@@ -332,7 +355,19 @@ class Engine:
                     self.last_transcript = ""
                     self.last_confidence = None
                 continue
-            self._finish(utterance, text, confidence, no_speech, save_clips, device_name)
+            if is_partial:
+                self._finish_partial(text, confidence)
+            else:
+                self._finish(utterance, text, confidence, no_speech, save_clips, device_name)
+
+    def _finish_partial(self, text, confidence) -> None:
+        if not text:
+            return
+        with self.lock:
+            self.last_transcript = text
+            self.last_transcript_id += 1
+            self.last_confidence = confidence
+            self.last_note = ""
 
     def _finish(self, utterance, text, confidence, no_speech, save_clips, device_name) -> None:
         if not text:

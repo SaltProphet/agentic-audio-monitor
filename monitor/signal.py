@@ -137,6 +137,13 @@ class Segmenter:
             return self._close()
         return []
 
+    def partial(self, window_seconds: float = 4.0) -> Utterance | None:
+        if not self.in_speech or self.voiced < self.min_len:
+            return None
+        window = max(self.min_len, int(float(window_seconds) * self.sample_rate))
+        samples = list(self.buffer[-window:])
+        return Utterance(samples, rms(samples), self.started_at or time.time())
+
     def _frame(self, chunk: list[float]) -> list[Utterance]:
         level = rms(chunk)
         if not math.isfinite(level):
