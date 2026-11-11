@@ -4,19 +4,24 @@ The repository keeps the user-facing Windows entry points at the root so existin
 
 ## Application code
 
-- `monitor\` — Audio Monitor Python package: capture, VAD, transcription, local HTTP server, and web UI.
+- `monitor\` — Audio Monitor Python package: capture, VAD, transcription, local HTTP server, closed-caption control, and web UI.
 - `monitor\web\` — The browser control page served by the monitor.
 - `cc\` — Separate PySide6 desktop caption companion and its CC-only configuration.
 
 ## Verification and references
 
-- `tests\` — Hardware-independent Python regression tests for the monitor, capture-source switching, CC controls, and CC configuration.
+- `tests\` — Hardware-independent Python regression tests for the monitor, capture-source switching, and release contracts.
+- `cc\test_cc.py` — Companion tests for config round-trips, overlay helpers, and the launcher contract.
 - `evals\` — Evaluation fixtures.
 - `docs\reference\` — Design or future-step notes that are not runtime code.
+- `.github\workflows\tests.yml` — Windows CI for Python 3.11-3.13 plus a Ruff check.
+- `pyproject.toml` — Version, dependency, and tooling metadata. `requirements.txt` stays the installer manifest.
+- `LICENSE` — PolyForm Noncommercial License 1.0.0; commercial use needs a separate license.
 
 ## Root entry points
 
 - `run.bat` / `run.ps1` — Start Audio Monitor.
+- `Audio Monitor.bat` / `start.bat` / `start.ps1` — Double-click start: stop any running copy, start the monitor, and wait for the page. Closed captions follow the saved setting.
 - `agentic-audio-monitor.bat` — Unified start/stop/restart/status launcher. CC is managed by the running monitor.
 - `setup.bat` / `setup.ps1` — Install the project environment.
 - `preflight.bat` / `preflight.ps1` — Inspect or install prerequisites.
@@ -34,5 +39,3 @@ These remain at the root because the launcher scripts, Windows shortcuts, and in
 - `models\` — Locally cached speech-model files.
 - `monitor.log` / `monitor.pid` — Monitor runtime log and process marker.
 - `.venv\` — Project Python environment.
-
-Backup files named `*.bak-*` are retained as-is and are not part of the active runtime tree. The nested `agentic-audio-monitor\` directory is a duplicate repository and is intentionally not used.

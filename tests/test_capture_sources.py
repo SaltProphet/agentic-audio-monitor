@@ -40,6 +40,11 @@ class FakeLoopbackCapture(FakeCapture):
         super().start()
 
 
+class FailingCapture(FakeCapture):
+    def start(self):
+        raise RuntimeError("device could not be opened")
+
+
 class CaptureSourceTests(unittest.TestCase):
     def _engine(self, tmp):
         path = Path(tmp) / "config.toml"
@@ -57,7 +62,7 @@ class CaptureSourceTests(unittest.TestCase):
             return_value=[{"index": 4, "channels": 1, "name": "Microphone", "hostapi": "Windows WASAPI"}],
         ):
             engine = self._engine(tmp)
-            engine._start_capture({"index": 4, "channels": 1, "name": "Microphone", "hostapi": "Windows WASAPI"})
+            engine._start_sources("external", match={"index": 4, "channels": 1, "name": "Microphone", "hostapi": "Windows WASAPI"})
             microphone = FakeCapture.instances[-1]
             ok, message = engine.update_settings({"loopback": True})
 
@@ -80,7 +85,7 @@ class CaptureSourceTests(unittest.TestCase):
         ):
             engine = self._engine(tmp)
             engine.cfg.source_mode = "system"
-            engine._start_loopback_capture()
+            engine._start_sources("system")
             loopback = FakeCapture.instances[-1]
             ok, message = engine.update_settings({"source_mode": "external"})
 
@@ -105,6 +110,26 @@ class CaptureSourceTests(unittest.TestCase):
             self.assertIsNone(engine.capture)
             self.assertEqual(engine.snapshot()["source"], "none")
             self.assertIn("WASAPI loopback", engine.snapshot()["capture_error"])
+            self.assertEqual(load_config(Path(tmp) / "config.toml").source_mode, "external")
+            engine.stop()
+
+    def test_failed_device_select_keeps_the_saved_device(self):
+        FakeCapture.instances = []
+        with tempfile.TemporaryDirectory() as tmp, patch("monitor.capture.Capture", FailingCapture), patch(
+            "monitor.engine.devices.list_inputs",
+            return_value=[{"index": 9, "channels": 1, "name": "Other mic", "hostapi": "MME"}],
+        ):
+            engine = self._engine(tmp)
+            before = load_config(Path(tmp) / "config.toml")
+
+            ok, message = engine.select_device(9, "Other mic", "MME")
+
+            self.assertFalse(ok)
+            self.assertIn("could not be opened", message)
+            after = load_config(Path(tmp) / "config.toml")
+            self.assertEqual(after.device_name, before.device_name)
+            self.assertEqual(after.device_index, before.device_index)
+            self.assertEqual(after.source_mode, before.source_mode)
             engine.stop()
 
     def test_selecting_a_device_explicitly_switches_from_loopback_to_microphone(self):
@@ -118,13 +143,17 @@ class CaptureSourceTests(unittest.TestCase):
         ):
             engine = self._engine(tmp)
             engine.cfg.source_mode = "system"
-            engine._start_loopback_capture()
+            engine.cfg.flags["loopback"] = True
+            engine._start_sources("system")
             loopback = FakeCapture.instances[-1]
 
             ok, message = engine.select_device(4, "Microphone", "Windows WASAPI")
 
             self.assertTrue(ok, message)
             self.assertFalse(engine.cfg.flags["loopback"])
+            saved = load_config(Path(tmp) / "config.toml")
+            self.assertEqual(saved.source_mode, "external")
+            self.assertFalse(saved.flags["loopback"])
             self.assertTrue(loopback.stopped)
             self.assertIsInstance(engine.capture, FakeCapture)
             self.assertNotIsInstance(engine.capture, FakeLoopbackCapture)

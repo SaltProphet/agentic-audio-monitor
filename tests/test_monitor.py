@@ -213,6 +213,31 @@ class EngineTests(unittest.TestCase):
             self.assertEqual(engine.snapshot()["last_transcript_id"], 2)
             engine.stop()
 
+    def test_malformed_settings_return_a_message_instead_of_raising(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "config.toml"
+            engine = Engine(ensure_config(path), path)
+
+            for patch, field in (({"retention_days": "abc"}, "retention_days"), ({"sensitivity": None}, "sensitivity")):
+                ok, message = engine.update_settings(patch)
+                self.assertFalse(ok)
+                self.assertIn(field, message)
+            engine.stop()
+
+    def test_empty_transcription_keeps_the_previous_transcript(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "config.toml"
+            engine = Engine(ensure_config(path), path)
+            utterance = SimpleNamespace(started_at=1_700_000_000, samples=[0.1] * 160, level=0.1)
+
+            engine._finish(utterance, "kept words", 0.9, 0.1, False, "test device")
+            engine._finish(utterance, "", 0.4, 0.9, False, "test device")
+
+            state = engine.snapshot()
+            self.assertEqual(state["last_transcript"], "kept words")
+            self.assertIn("no words", state["last_note"])
+            engine.stop()
+
     def test_partial_transcription_keeps_only_the_latest_pending_window(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "config.toml"
@@ -251,11 +276,13 @@ class ServerTests(unittest.TestCase):
         with urllib.request.urlopen(self.base + path, timeout=5) as response:
             return response.status, response.read()
 
-    def _post(self, path, payload):
+    def _post(self, path, payload, headers=None):
+        request_headers = {"Content-Type": "application/json"}
+        request_headers.update(headers or {})
         req = urllib.request.Request(
             self.base + path,
             data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
+            headers=request_headers,
             method="POST",
         )
         try:
@@ -325,6 +352,36 @@ class ServerTests(unittest.TestCase):
         code, payload = self._post("/api/cc", {"minimize_to_tray": False})
         self.assertEqual(code, 200)
         self.assertFalse(payload["state"]["cc"]["minimize_to_tray"])
+
+    def test_malformed_settings_are_rejected_instead_of_dropping_the_connection(self):
+        cases = (
+            ("/api/settings", {"retention_days": "abc"}, "retention_days"),
+            ("/api/settings", {"retention_days": None}, "retention_days"),
+            ("/api/settings", {"sensitivity": "abc"}, "sensitivity"),
+            ("/api/settings", {"sensitivity": None}, "sensitivity"),
+            ("/api/cc", {"font_size": None}, "font_size"),
+            ("/api/cc", {"max_width": "wide"}, "max_width"),
+            ("/api/cc", {"caption_timeout": None}, "caption_timeout"),
+            ("/api/cc", {"opacity": []}, "opacity"),
+        )
+        for path, payload, field in cases:
+            code, body = self._post(path, payload)
+            self.assertEqual(code, 400, payload)
+            self.assertIn(field, body["message"], payload)
+        status, raw = self._get("/api/state")
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(raw.decode("utf-8"))["last_transcript"], "")
+
+    def test_writes_require_json_from_this_page(self):
+        code, _body = self._post("/api/settings", {"sensitivity": 0.6}, {"Content-Type": "text/plain"})
+        self.assertEqual(code, 403)
+        code, _body = self._post("/api/settings", {"sensitivity": 0.6}, {"Origin": "http://127.0.0.1:9999"})
+        self.assertEqual(code, 403)
+        self.assertAlmostEqual(self.engine.cfg.sensitivity, 0.55)
+
+        code, body = self._post("/api/settings", {"sensitivity": 0.6}, {"Origin": self.base})
+        self.assertEqual(code, 200, body)
+        self.assertAlmostEqual(self.engine.cfg.sensitivity, 0.6)
 
 
 class HygieneTests(unittest.TestCase):

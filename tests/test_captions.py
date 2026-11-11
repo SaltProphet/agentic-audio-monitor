@@ -95,6 +95,16 @@ class CaptionControllerTests(unittest.TestCase):
             self.assertTrue(processes[0].terminated)
             self.assertFalse(controller.snapshot()["running"])
 
+    def test_non_numeric_settings_are_rejected_without_raising(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            controller = CCController(Path(tmp), process_factory=lambda command, **kwargs: FakeProcess())
+
+            for patch in ({"font_size": None}, {"max_width": "wide"}, {"caption_timeout": None}, {"opacity": []}):
+                ok, message = controller.apply(patch)
+                self.assertFalse(ok, patch)
+                self.assertIn(next(iter(patch)), message)
+            self.assertFalse(controller.snapshot()["enabled"])
+
     def test_failed_companion_launch_is_reported_without_failing_monitor_control(self):
         def launch(command, **kwargs):
             raise OSError("PySide6 is unavailable")

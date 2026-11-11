@@ -7,7 +7,7 @@ import threading
 from datetime import datetime
 from pathlib import Path
 
-from . import devices
+from . import __version__, devices
 from .captions import CCController
 from .config import Config, save_config
 from .signal import Segmenter, dbfs, peak, resample, rms
@@ -112,15 +112,17 @@ class Engine:
         match = devices.resolve(rows, index=index, name=name, hostapi=hostapi)
         if match is None:
             return False, "That device is not in the current input list. Refresh and pick it again."
+        mode = "external" if self.cfg.source_mode == "system" else self.cfg.source_mode
+        # Open the capture first. A device that cannot start is not written to disk.
+        error = self._start_sources(mode, match=match)
+        if error:
+            return False, error
         self.cfg.device_index = match["index"]
         self.cfg.device_name = match["name"]
         self.cfg.device_hostapi = match["hostapi"]
-        if self.cfg.source_mode == "system":
-            self.cfg.source_mode = "external"
+        self.cfg.source_mode = mode
+        self.cfg.flags["loopback"] = mode == "system"
         save_config(self.config_path, self.cfg)
-        error = self._start_sources(self.cfg.source_mode, match=match)
-        if error:
-            return False, error
         self._maybe_autoload()
         return True, "listening"
 
@@ -152,9 +154,15 @@ class Engine:
         nxt.flags = dict(self.cfg.flags)
         for key, value in patch.items():
             if key == "retention_days":
-                value = int(value)
+                try:
+                    value = int(value)
+                except (TypeError, ValueError):
+                    return False, "retention_days must be a whole number from 1 to 3650"
             if key == "sensitivity":
-                value = float(value)
+                try:
+                    value = float(value)
+                except (TypeError, ValueError):
+                    return False, "sensitivity must be a number between 0 and 1"
             if key == "loopback":
                 nxt.source_mode = "system" if bool(value) else "external"
             elif key == "source_mode":
@@ -168,6 +176,15 @@ class Engine:
         model_keys = {"model", "model_path", "compute_device", "compute_type", "allow_cpu", "offline"}
         reload_needed = any(getattr(nxt, key) != getattr(self.cfg, key) for key in model_keys)
         source_changed = nxt.source_mode != self.cfg.source_mode
+        if source_changed:
+            # Open the requested sources before saving anything, so a failed switch
+            # leaves both the config file and the running capture untouched.
+            was_capturing = self.capturing
+            error = self._start_sources(nxt.source_mode)
+            if error:
+                restored = self._start_sources(self.cfg.source_mode) if was_capturing else None
+                self.capture_error = restored or error
+                return False, error
         with self.lock:
             self.cfg = nxt
             self.segmenter.set_sensitivity(nxt.sensitivity)
@@ -179,11 +196,6 @@ class Engine:
                 self.queue.clear()
                 self.cv.notify_all()
         save_config(self.config_path, self.cfg)
-        if source_changed:
-            error = self._start_sources(self.cfg.source_mode)
-            if error:
-                self.capture_error = error
-                return False, error
         if reload_needed:
             self._refresh_model_note()
         return True, "saved"
@@ -225,6 +237,8 @@ class Engine:
 
     def snapshot(self) -> dict:
         live = self.live()
+        with self.lock:
+            recent = list(self.recent)
         device = None
         if self.cfg.device_name and self.cfg.source_mode != "system":
             device = {
@@ -234,7 +248,7 @@ class Engine:
                 "input_rate": self.input_rate,
             }
         return {
-            "version": "0.1.0",
+            "version": __version__,
             "step": 1,
             **live,
             "device": device,
@@ -259,7 +273,7 @@ class Engine:
             "last_confidence": self.last_confidence,
             "last_note": self.last_note,
             "ignored_flags": self.cfg.ignored_flags(),
-            "recent_events": list(self.recent),
+            "recent_events": recent,
             "untranscribed": self.untranscribed,
             "dropped": self.dropped,
             "host": self.cfg.host,
@@ -371,8 +385,8 @@ class Engine:
 
     def _finish(self, utterance, text, confidence, no_speech, save_clips, device_name) -> None:
         if not text:
+            # A noise segment must not erase the words that are already on screen.
             with self.lock:
-                self.last_transcript = ""
                 self.last_confidence = confidence
                 self.last_note = "Speech was detected. Transcription returned no words."
             return
@@ -399,12 +413,6 @@ class Engine:
             self.last_note = ""
             self.recent.insert(0, record)
             del self.recent[40:]
-
-    def _start_capture(self, match: dict) -> str | None:
-        return self._start_sources("external", match=match)
-
-    def _start_loopback_capture(self) -> str | None:
-        return self._start_sources("system")
 
     def _start_sources(self, mode: str, match: dict | None = None) -> str | None:
         from .capture import Capture, LoopbackCapture
@@ -457,31 +465,34 @@ class Engine:
         except Exception as exc:
             for capture in reversed(started):
                 capture.stop()
-            self.capture = None
-            self.captures = []
-            self.capturing = False
-            self.capture_mode = "none"
-            self.capture_endpoint = ""
-            self.capture_hostapi = ""
-            self.capture_channels = 0
-            self.input_rate = 0
-            self.capture_error = str(exc)
-            self.rms = 0.0
-            self.peak = 0.0
+            with self.lock:
+                self.capture = None
+                self.captures = []
+                self.capturing = False
+                self.capture_mode = "none"
+                self.capture_endpoint = ""
+                self.capture_hostapi = ""
+                self.capture_channels = 0
+                self.input_rate = 0
+                self.capture_error = str(exc)
+                self.rms = 0.0
+                self.peak = 0.0
             log.error("Could not open requested capture mode=%s error=%s", mode, exc)
             return str(exc)
-        self.captures = started
-        self.capture = started[0]
-        self.capturing = True
-        self.capture_mode = mode
-        self.capture_endpoint = " + ".join(endpoint_names)
-        self.capture_hostapi = " + ".join(dict.fromkeys(hostapis))
-        self.capture_channels = channels
-        self.input_rate = rate
+        with self.lock:
+            self.captures = started
+            self.capture = started[0]
+            self.capturing = True
+            self.capture_mode = mode
+            self.capture_endpoint = " + ".join(endpoint_names)
+            self.capture_hostapi = " + ".join(dict.fromkeys(hostapis))
+            self.capture_channels = channels
+            self.input_rate = rate
         return None
 
     def _stop_capture(self) -> None:
-        self.capturing = False
+        with self.lock:
+            self.capturing = False
         captures = list(self.captures)
         if not captures and self.capture is not None:
             captures = [self.capture]
@@ -493,11 +504,11 @@ class Engine:
             self.rms = 0.0
             self.peak = 0.0
             self.input_rate = 0
+            self.capture_mode = "none"
+            self.capture_endpoint = ""
+            self.capture_hostapi = ""
+            self.capture_channels = 0
             self.segmenter.flush()
-        self.capture_mode = "none"
-        self.capture_endpoint = ""
-        self.capture_hostapi = ""
-        self.capture_channels = 0
 
     def _plan(self):
         if self.cfg.compute_device == "cuda":

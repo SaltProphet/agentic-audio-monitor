@@ -1,3 +1,3 @@
-"""Local microphone monitor. Audio and transcripts stay on this machine."""
+"""Local audio monitor. Audio and transcripts stay on this machine."""
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

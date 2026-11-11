@@ -8,7 +8,7 @@ $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $targets = @(".venv")
 if ($DeleteData) {
-  $targets += @("logs", "clips", "config.toml", "monitor.pid", "monitor.log", "monitor.log.1")
+  $targets += @("logs", "clips", "config.toml", "cc\config.json", "monitor.pid", "monitor.log", "monitor.log.1")
 }
 if ($DeleteModels) {
   $targets += @("models")

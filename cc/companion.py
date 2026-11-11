@@ -90,8 +90,8 @@ def read_state(url: str, timeout: float = 1.5) -> dict | None:
 
 
 try:
-    from PySide6.QtCore import QObject, QPoint, QRect, Qt, QThread, QTimer, Signal
-    from PySide6.QtGui import QAction, QColor, QFont, QIcon, QKeySequence, QPainter, QShortcut
+    from PySide6.QtCore import QObject, Qt, QThread, QTimer, Signal
+    from PySide6.QtGui import QAction, QFont, QIcon
     from PySide6.QtWidgets import (
         QApplication,
         QInputDialog,

@@ -32,7 +32,7 @@
     font: 15px/1.5 "Segoe UI", system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
-  header, main, footer, .package { width: min(1440px, calc(100% - 48px)); margin-inline: auto; }
+  header, main, footer { width: min(1440px, calc(100% - 48px)); margin-inline: auto; }
   header {
     min-height: 112px;
     padding: 24px 0 20px;
@@ -119,16 +119,13 @@
   tbody tr:hover { background: #202b35; }
   a { color: #78d9d3; text-underline-offset: 3px; }
   footer { padding: 17px 0 30px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
-  .package { margin-top: 14px; }
-  .package a { display: inline-block; min-height: 44px; line-height: 44px; padding: 0 16px; border-radius: 8px; background: var(--teal); color: #051517; font-weight: 700; text-decoration: none; margin-right: 12px; }
-  .package span { color: var(--dim); font-size: 13px; }
   @media (max-width: 960px) {
     .grid { grid-template-columns: minmax(0, 1fr); }
     .log, .settings { grid-column: 1; }
     .grid > article:first-child { min-height: 260px; }
   }
   @media (max-width: 640px) {
-    header, main, footer, .package { width: min(100% - 24px, 1440px); }
+    header, main, footer { width: min(100% - 24px, 1440px); }
     header { align-items: flex-start; flex-direction: column; gap: 12px; }
     .step { max-width: none; text-align: left; }
     article, .log, .settings { padding: 17px; }
@@ -147,11 +144,10 @@
   <div>
     <p class="kicker">On this machine</p>
     <h1>Audio Monitor</h1>
-    <p class="version" id="app-version">Version 0.1.0</p>
+    <p class="version" id="app-version">Version 0.2.0</p>
   </div>
   <p class="step" id="step">Live audio capture · On-device transcription · Local history</p>
 </header>
-<p class="package" id="get-package" hidden><a href="/package.zip" download="agentic-audio-monitor.zip">Download Audio Monitor for Windows</a><span>Extract it, double-click setup.bat, then type YES.</span></p>
 <main>
   <p class="warn" id="banner"></p>
   <div class="grid">

@@ -8,7 +8,7 @@ It does not invent levels or transcripts. If the device or the speech model is u
 
 Echo and keyboard-idle speech are still stored settings and are not implemented. `source_mode` selects external microphone, system audio loopback, or both sources.
 
-There is no tray icon. A local page is the whole interface.
+The page is the whole control surface. An optional caption companion draws closed captions on the desktop and adds its own tray icon; the page's **Closed captions** section starts and stops it.
 
 ## What can leave this PC
 
@@ -29,17 +29,18 @@ Nothing is installed until you type YES in `setup.bat` (or run `install.bat` / `
 - `sounddevice==0.5.6`
 - `PyAudioWPatch`
 - `faster-whisper==1.2.1`
+- `PySide6` for the caption companion
 - their dependencies: `numpy`, `cffi`, `ctranslate2`, `huggingface-hub`, `tokenizers`, `onnxruntime`, `av`, `tqdm`
 
 It does not install a CUDA toolkit, Docker, a system ffmpeg, or a CPU transcription fallback. The NVIDIA driver is assumed to already be on the machine. `nvidia-smi` must work or GPU transcription will refuse to start.
 
-Use Python 3.12 if you can. 3.11 and 3.13 are accepted. Older than 3.11 is not.
+Use Python 3.12 if you can. 3.11 and 3.13 are accepted. Older than 3.11 and newer than 3.13 are not supported.
 
 ## Run
 
 Follow [INSTALL.md](INSTALL.md). Short form: extract the folder, double-click `setup.bat`, type YES. The page is `http://127.0.0.1:8765/`.
 
-For a normal desktop start, double-click `Audio Monitor.bat` or the **Audio Monitor** shortcut. For lifecycle commands, run `agentic-audio-monitor.bat start`, `agentic-audio-monitor.bat stop`, or `agentic-audio-monitor.bat restart`. Use `agentic-audio-monitor.bat status` to check the monitor process. Closed Captions are started and stopped by the monitor when enabled from its web UI.
+For a normal desktop start, double-click `Audio Monitor.bat` or the **Audio Monitor** shortcut. For lifecycle commands, run `agentic-audio-monitor.bat start`, `agentic-audio-monitor.bat stop`, or `agentic-audio-monitor.bat restart`. Use `agentic-audio-monitor.bat status` to check the monitor process. Closed captions start and stop with the setting saved on the page.
 
 ## Project layout
 
@@ -55,7 +56,7 @@ Double-click `stop.bat`, or close the `run.bat` window.
 
 - `uninstall.bat` prints what it would remove and removes nothing.
 - To remove the private library folder: `powershell -NoProfile -ExecutionPolicy Bypass -File .\uninstall.ps1 -Yes`
-- Also remove logs, clips, and `config.toml`: add `-DeleteData`
+- Also remove logs, clips, `config.toml`, and `cc\config.json`: add `-DeleteData`
 - Also remove downloaded weights in `.\models`: add `-DeleteModels`
 
 A `model_path` outside this folder is never deleted. The program files stay until you delete the folder.
@@ -76,6 +77,7 @@ A `model_path` outside this folder is never deleted. The program files stay unti
 | `task` | `transcribe` or `translate`; translation produces English text from supported source languages. |
 | `compute_device` | `cuda`. `cpu` is rejected unless `allow_cpu` is true. |
 | `compute_type` | `float16` on the GPU. Use `int8` if you opted into CPU. |
+| `allow_cpu` | `false`. Must be true before `compute_device = "cpu"` is accepted. |
 | `offline` | Refuse the weight download. |
 | `host`, `port` | Page bind. Default `127.0.0.1` and `8765`. Restart after editing these. |
 | `flags.echo`, `flags.idle_speech` | Stored but not implemented. |
@@ -99,10 +101,24 @@ Files written beside the config:
 
 ## Tests
 
-From this folder, after install, or with any Python 3.11+ even before install:
+From this folder, after install, or with any Python 3.11-3.13 even before install:
 
 ```
 python -m unittest discover -s tests -v
 ```
 
-The tests do not open a microphone and do not download a model.
+The companion has its own suite:
+
+```
+python -m unittest discover -s cc -p "test_*.py" -v
+```
+
+The tests do not open a microphone and do not download a model. GitHub Actions runs both suites on Windows for Python 3.11, 3.12, and 3.13.
+
+`pyproject.toml` holds the version and dependency metadata; `requirements.txt` is the installer manifest and the two are checked against each other by `tests/test_release.py`.
+
+## License
+
+This project is licensed under the PolyForm Noncommercial License 1.0.0. See [LICENSE](LICENSE).
+
+Personal, hobby, research, educational, and other noncommercial use is allowed. Commercial use, resale, or inclusion in a paid product requires a separate written license from the copyright holder.

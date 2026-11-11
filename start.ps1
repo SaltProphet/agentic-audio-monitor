@@ -10,11 +10,19 @@ Start-Process powershell.exe `
     -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $RunScript `
     -WorkingDirectory $Root
 
-$ccUrl = "http://127.0.0.1:8765/api/cc"
+# Wait on the page itself, using the port the config actually binds.
+$port = 8765
+$config = Join-Path $Root "config.toml"
+if (Test-Path -LiteralPath $config) {
+    $match = Select-String -Path $config -Pattern '^\s*port\s*=\s*(\d+)' | Select-Object -First 1
+    if ($match) { $port = [int]$match.Matches[0].Groups[1].Value }
+}
+
+$stateUrl = "http://127.0.0.1:$port/api/state"
 $ready = $false
 for ($attempt = 0; $attempt -lt 30; $attempt++) {
     try {
-        $response = Invoke-RestMethod -Uri $ccUrl -Method Get -TimeoutSec 1
+        Invoke-RestMethod -Uri $stateUrl -Method Get -TimeoutSec 1 | Out-Null
         $ready = $true
         break
     } catch {
@@ -23,14 +31,10 @@ for ($attempt = 0; $attempt -lt 30; $attempt++) {
 }
 
 if (-not $ready) {
-    Write-Error "Audio Monitor did not become ready on port 8765."
+    Write-Error "Audio Monitor did not become ready on port $port."
     exit 1
 }
 
-Invoke-RestMethod `
-    -Uri $ccUrl `
-    -Method Post `
-    -ContentType "application/json" `
-    -Body '{"enabled":true}' | Out-Null
-
-Write-Output "Audio Monitor and Closed Captions are running."
+Write-Output "Audio Monitor is running at http://127.0.0.1:$port/"
+Write-Output "Closed captions follow the saved setting on the page."
+exit 0

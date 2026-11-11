@@ -44,14 +44,14 @@ nvidia-smi
 | `Python:` | A version starting with `3.11`, `3.12`, or `3.13`. |
 | `NVIDIA:` | The GPU name and driver. If it says `nvidia-smi was not found`, go back to step 1. |
 | `Existing .venv:` | `no` on a first install. |
-| `Would install into .\.venv only:` | `pip`, `sounddevice==0.5.6`, `faster-whisper==1.2.1`, plus `numpy`, `cffi`, `ctranslate2`, `huggingface-hub`, `tokenizers`, `onnxruntime`, `av`, and `tqdm`. |
+| `Would install into .\.venv only:` | `pip`, `sounddevice==0.5.6`, `faster-whisper==1.2.1`, `PySide6`, plus `numpy`, `cffi`, `ctranslate2`, `huggingface-hub`, `tokenizers`, `onnxruntime`, `av`, and `tqdm`. |
 | `Would not install:` | CUDA toolkit, Docker, system ffmpeg, CPU fallback. |
 | Last line of the check | `No install was performed.` |
 
 3. If Python says `MISSING`, close the window and install Python 3.12 from the Python Windows installer. Enable **Add python.exe to PATH** and the **py launcher**. Then run `setup.bat` again.
 4. At the prompt, type `YES` and press Enter. Anything else installs nothing.
 5. Wait until it says `Setup finished.` The first run can take several minutes because the GPU speech library is large.
-6. It writes two shortcuts named **Audio Monitor**, one on the desktop and one in the Start menu. Both start `run.bat` in this folder.
+6. It writes two shortcuts named **Audio Monitor**, one on the desktop and one in the Start menu. Both start `Audio Monitor.bat` in this folder.
 7. Type `YES` again only if you want the monitor to start now. Otherwise close the window and use the shortcut later.
 
 ## 4. First start
@@ -83,7 +83,7 @@ Double-click `stop.bat`, or close the Audio Monitor window.
 powershell -NoProfile -ExecutionPolicy Bypass -File .\uninstall.ps1 -Yes
 ```
 
-3. To also remove logs, clips, and `config.toml`, add `-DeleteData`.
+3. To also remove logs, clips, `config.toml`, and `cc\config.json`, add `-DeleteData`.
 4. To also remove downloaded weights in `.\models`, add `-DeleteModels`.
 5. A `model_path` that points outside this folder is never deleted.
 6. The program files stay until you delete the folder yourself.

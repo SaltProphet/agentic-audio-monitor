@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 import wave
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -119,8 +118,3 @@ def _write_wav(path: Path, samples: list[float], sample_rate: int) -> None:
         handle.setsampwidth(2)
         handle.setframerate(sample_rate)
         handle.writeframes(frames)
-
-
-def touch_old(path: Path, days_ago: float) -> None:
-    when = datetime.now().timestamp() - days_ago * 86400
-    os.utime(path, (when, when))

@@ -14,7 +14,7 @@
     {
       "name": "step_two_closed",
       "input": "flag echo and speaker feedback",
-      "assertions": ["says those flags are not in this build", "does not write a flagged row"]
+      "assertions": ["says the echo and speaker-match flags are not in this build", "does not write a flagged row"]
     }
   ]
 }

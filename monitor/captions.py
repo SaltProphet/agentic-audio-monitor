@@ -26,6 +26,14 @@ DEFAULTS = {
 ALLOWED = set(DEFAULTS) | {"reset_position"}
 
 
+def _number(config: dict, key: str) -> float:
+    """Reject non-numeric input with a message instead of raising TypeError."""
+    value = config.get(key)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"{key} must be a number")
+    return float(value)
+
+
 def companion_python(root: Path) -> str:
     """Use the project's environment so the CC dependencies match the monitor."""
     root = Path(root)
@@ -115,13 +123,17 @@ class CCController:
     def _validate(self, config: dict) -> None:
         if any(not isinstance(config[key], bool) for key in ("enabled", "click_through", "minimize_to_tray")):
             raise ValueError("enabled, click_through, and minimize_to_tray must be boolean")
-        if not 12 <= int(config["font_size"]) <= 96:
+        font_size = _number(config, "font_size")
+        opacity = _number(config, "opacity")
+        max_width = _number(config, "max_width")
+        timeout = _number(config, "caption_timeout")
+        if not 12 <= font_size <= 96:
             raise ValueError("font_size must be between 12 and 96")
-        if not 0.1 <= float(config["opacity"]) <= 1:
+        if not 0.1 <= opacity <= 1:
             raise ValueError("opacity must be between 0.1 and 1")
-        if not 240 <= int(config["max_width"]) <= 2000:
+        if not 240 <= max_width <= 2000:
             raise ValueError("max_width must be between 240 and 2000")
-        if not 0 <= float(config["caption_timeout"]) <= 120:
+        if not 0 <= timeout <= 120:
             raise ValueError("caption_timeout must be between 0 and 120")
 
     def _sync_geometry(self) -> None:

@@ -7,7 +7,7 @@ lifecycle: active
 
 # Audio Monitor
 
-Step 1 of a local listener. Capture, level, voice activity, GPU transcription, and a JSONL log are separate. Echo, idle-speech, and speaker-loopback are named in config and are not implemented.
+Step 1 of a local listener. Capture, level, voice activity, GPU transcription, and a JSONL log are separate. The `echo` and `idle_speech` flags are named in config and are not implemented. System audio loopback is implemented through `source_mode`.
 
 ## When to use
 

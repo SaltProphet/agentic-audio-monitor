@@ -1,11 +1,14 @@
 .venv/
-agentic-audio-monitor/
 
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.ruff_cache/
 .coverage
 htmlcov/
+build/
+dist/
+*.egg-info/
 
 config.toml
 cc/config.json
@@ -13,7 +16,9 @@ clips/
 logs/
 models/
 monitor.log
+monitor.log.1
 monitor.pid
+*.tmp
 
 *.bak
 *.bak-*

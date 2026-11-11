@@ -53,12 +53,10 @@ def plan_load(cfg: Config, models_dir: Path, *, cuda_count: int | None, cuda_err
                 "model_path does not contain model.bin. Nothing was downloaded.",
             )
         model_arg = cfg.model_path
-        local_only = True
         present = True
     else:
         present = weights_present(models_dir, cfg.model)
         model_arg = cfg.model
-        local_only = present or cfg.offline
     if cfg.compute_device == "cpu":
         if not cfg.allow_cpu:
             return Plan("error", True, model_arg, "cpu", cfg.compute_type, "CPU transcription is disabled.")

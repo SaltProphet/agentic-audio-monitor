@@ -1,4 +1,3 @@
-import json
 import sys
 import unittest
 from pathlib import Path
@@ -78,6 +77,15 @@ class CompanionStateTests(unittest.TestCase):
         self.assertIn('id="language"', page)
         self.assertIn('value=""', page)
         self.assertIn('value="es"', page)
+
+    def test_caption_defaults_match_the_monitor_controller(self):
+        root = Path(__file__).resolve().parents[1]
+        sys.path.insert(0, str(root))
+        from monitor.captions import DEFAULTS
+
+        self.assertEqual(set(DEFAULTS), set(DEFAULT_CONFIG))
+        for key, value in DEFAULTS.items():
+            self.assertEqual(DEFAULT_CONFIG[key], value, key)
 
     def test_close_decision_hides_unless_quit_was_requested(self):
         self.assertTrue(should_minimize_to_tray({"minimize_to_tray": True}))

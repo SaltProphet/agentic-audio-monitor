@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentic-audio-monitor"
+version = "0.2.0"
+description = "Local Windows audio monitor with on-GPU speech transcription and desktop captions."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11,<3.14"
+classifiers = [
+  "License :: Other/Proprietary License",
+  "Operating System :: Microsoft :: Windows",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+  "sounddevice==0.5.6",
+  "pyaudiowpatch",
+  "faster-whisper==1.2.1",
+  "PySide6>=6.7,<7",
+]
+
+[project.optional-dependencies]
+dev = ["ruff>=0.6"]
+
+[project.scripts]
+audio-monitor = "monitor.__main__:main"
+
+[tool.setuptools]
+packages = ["monitor"]
+
+[tool.setuptools.package-data]
+monitor = ["web/*.html"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+extend-exclude = [".venv", "models", "logs", "clips"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
