@@ -30,7 +30,8 @@ Nothing is installed until you type YES in `setup.bat` (or run `install.bat` / `
 - `PyAudioWPatch`
 - `faster-whisper==1.2.1`
 - `PySide6` for the caption companion
-- their dependencies: `numpy`, `cffi`, `ctranslate2`, `huggingface-hub`, `tokenizers`, `onnxruntime`, `av`, `tqdm`
+- `nvidia-cublas-cu12` and `nvidia-cudnn-cu12` for the CUDA 12 runtime DLLs
+- their dependencies: `numpy`, `cffi`, `ctranslate2`, `huggingface-hub`, `tokenizers`, `onnxruntime`, `av`, `tqdm`, `nvidia-cuda-nvrtc-cu12`
 
 It does not install a CUDA toolkit, Docker, a system ffmpeg, or a CPU transcription fallback. The NVIDIA driver is assumed to already be on the machine. `nvidia-smi` must work or GPU transcription will refuse to start.
 

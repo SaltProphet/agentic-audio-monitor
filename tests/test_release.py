@@ -46,6 +46,11 @@ class ReleaseTests(unittest.TestCase):
         self.assertIn("PolyForm Noncommercial License 1.0.0", text)
         self.assertIn("Noncommercial Purposes", text)
 
+    def test_cuda_runtime_is_declared(self):
+        dependencies = pyproject()["project"]["dependencies"]
+        self.assertIn("nvidia-cublas-cu12==12.9.2.10", dependencies)
+        self.assertIn("nvidia-cudnn-cu12==9.28.1.4", dependencies)
+
     def test_supported_python_matches_the_installer(self):
         project = pyproject()["project"]
         self.assertEqual(project["requires-python"], ">=3.11,<3.14")

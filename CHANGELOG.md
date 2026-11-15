@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1
+
+- Install the CUDA 12 runtime DLLs (`nvidia-cublas-cu12` and `nvidia-cudnn-cu12`) with the other dependencies. A fresh install could previously start without them, so GPU transcription failed even though `nvidia-smi` worked.
+- Preflight now reports missing `nvidia.cublas` and `nvidia.cudnn` modules and installs them on request.
+
 ## 0.2.0
 
 - Harden the local API: malformed settings return 400, writes must be JSON from this page, and unexpected errors return 500 instead of dropping the connection.

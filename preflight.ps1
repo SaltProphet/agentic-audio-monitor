@@ -58,7 +58,7 @@ if ($smi) {
 }
 
 $venvPy = Join-Path $Root ".venv\Scripts\python.exe"
-$mods = @("numpy", "sounddevice", "pyaudiowpatch", "faster_whisper", "ctranslate2")
+$mods = @("numpy", "sounddevice", "pyaudiowpatch", "faster_whisper", "ctranslate2", "nvidia.cublas", "nvidia.cudnn")
 if (Test-Path $venvPy) {
   Write-Output "Existing .venv:"
   $check = "import importlib.util`n" + (($mods | ForEach-Object { "print('{0}', 'yes' if importlib.util.find_spec('{0}') else 'no')" -f $_ }) -join "`n")
@@ -71,7 +71,7 @@ Write-Output ""
 Write-Output "Would install into .\.venv only:"
 Write-Output "  pip (inside that .venv)"
 Get-Content (Join-Path $Root "requirements.txt") | Where-Object { $_ -and -not $_.StartsWith("#") } | ForEach-Object { Write-Output ("  " + $_) }
-Write-Output "  plus dependencies already named in requirements.txt (numpy, cffi, ctranslate2, huggingface-hub, tokenizers, onnxruntime, av, tqdm)"
+Write-Output "  plus dependencies already named in requirements.txt (numpy, cffi, ctranslate2, huggingface-hub, tokenizers, onnxruntime, av, tqdm, nvidia-cuda-nvrtc-cu12)"
 Write-Output "Would not install: a CUDA toolkit, Docker, a system ffmpeg, or a CPU fallback."
 Write-Output "First model load may download speech-model weights once into .\models. Later runs stay on disk."
 
@@ -82,7 +82,7 @@ if (-not $Install) {
 }
 
 if ((Test-Path $venvPy) -and -not $Upgrade) {
-    $probe = & $venvPy -c "import importlib.util; mods=['numpy','sounddevice','pyaudiowpatch','faster_whisper','ctranslate2']; missing=[m for m in mods if importlib.util.find_spec(m) is None]; print(' '.join(missing))"
+    $probe = & $venvPy -c "import importlib.util; mods=['numpy','sounddevice','pyaudiowpatch','faster_whisper','ctranslate2','nvidia.cublas','nvidia.cudnn']; missing=[m for m in mods if importlib.util.find_spec(m) is None]; print(' '.join(missing))"
   if (-not ($probe | Out-String).Trim()) {
     Write-Output "Packages already present. Nothing installed. Pass -Upgrade to reinstall."
     exit 0

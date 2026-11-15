@@ -44,7 +44,7 @@ nvidia-smi
 | `Python:` | A version starting with `3.11`, `3.12`, or `3.13`. |
 | `NVIDIA:` | The GPU name and driver. If it says `nvidia-smi was not found`, go back to step 1. |
 | `Existing .venv:` | `no` on a first install. |
-| `Would install into .\.venv only:` | `pip`, `sounddevice==0.5.6`, `faster-whisper==1.2.1`, `PySide6`, plus `numpy`, `cffi`, `ctranslate2`, `huggingface-hub`, `tokenizers`, `onnxruntime`, `av`, and `tqdm`. |
+| `Would install into .\.venv only:` | `pip`, `sounddevice==0.5.6`, `faster-whisper==1.2.1`, `PySide6`, `nvidia-cublas-cu12`, `nvidia-cudnn-cu12`, plus `numpy`, `cffi`, `ctranslate2`, `huggingface-hub`, `tokenizers`, `onnxruntime`, `av`, `tqdm`, and `nvidia-cuda-nvrtc-cu12`. |
 | `Would not install:` | CUDA toolkit, Docker, system ffmpeg, CPU fallback. |
 | Last line of the check | `No install was performed.` |
 
