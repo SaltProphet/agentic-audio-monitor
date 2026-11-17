@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 import os
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -124,6 +125,11 @@ def apply_privacy_env(offline: bool) -> None:
     else:
         os.environ.pop("HF_HUB_OFFLINE", None)
         os.environ.pop("TRANSFORMERS_OFFLINE", None)
+    # huggingface_hub reads these variables once at import time. Keep the cached
+    # value in step when the user switches offline mode without restarting.
+    constants = sys.modules.get("huggingface_hub.constants")
+    if constants is not None:
+        constants.HF_HUB_OFFLINE = offline
 
 
 def probe_cuda() -> tuple[int | None, str | None]:
@@ -139,7 +145,10 @@ def probe_cuda() -> tuple[int | None, str | None]:
 
 
 def load_whisper(plan: Plan, models_dir: Path, offline: bool):
-    apply_privacy_env(offline or plan.local_files_only)
+    # local_files_only already prevents network access for a local load. Do not
+    # flip the process-wide offline switch for it: that flag stays cached by
+    # huggingface_hub and would block a later download in the same process.
+    apply_privacy_env(offline)
     from faster_whisper import WhisperModel
 
     kwargs = {

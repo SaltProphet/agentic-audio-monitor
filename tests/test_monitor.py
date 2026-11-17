@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import re
 import tempfile
 import threading
@@ -12,13 +13,14 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from monitor.config import Config, ensure_config, load_config, render_toml, save_config
 from monitor.engine import Engine
 from monitor.server import MonitorServer
 from monitor.signal import Segmenter, dbfs, resample, rms
 from monitor.store import Store
-from monitor.transcribe import plan_load, weights_present
+from monitor.transcribe import Plan, apply_privacy_env, load_whisper, plan_load, weights_present
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -158,6 +160,29 @@ class PlanTests(unittest.TestCase):
         self.assertEqual(plan.action, "error")
 
 
+class PrivacyEnvTests(unittest.TestCase):
+    def test_switching_offline_updates_the_environment_and_cached_flag(self):
+        constants = SimpleNamespace(HF_HUB_OFFLINE=True)
+        with patch.dict("sys.modules", {"huggingface_hub.constants": constants}):
+            apply_privacy_env(False)
+            self.assertNotIn("HF_HUB_OFFLINE", os.environ)
+            self.assertNotIn("TRANSFORMERS_OFFLINE", os.environ)
+            self.assertFalse(constants.HF_HUB_OFFLINE)
+
+            apply_privacy_env(True)
+            self.assertEqual(os.environ["HF_HUB_OFFLINE"], "1")
+            self.assertTrue(constants.HF_HUB_OFFLINE)
+
+        apply_privacy_env(False)
+
+    def test_local_model_load_does_not_flip_the_global_offline_switch(self):
+        plan = Plan("load", True, "small", "cuda", "float16", "Loading from disk.")
+        module = SimpleNamespace(WhisperModel=lambda *args, **kwargs: object())
+        with patch("monitor.transcribe.apply_privacy_env") as env, patch.dict("sys.modules", {"faster_whisper": module}):
+            load_whisper(plan, Path("."), False)
+        env.assert_called_once_with(False)
+
+
 class StoreTests(unittest.TestCase):
     def test_log_prune_and_wav(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -211,6 +236,70 @@ class EngineTests(unittest.TestCase):
 
             self.assertEqual(first_id, 1)
             self.assertEqual(engine.snapshot()["last_transcript_id"], 2)
+            engine.stop()
+
+    def test_selecting_a_new_model_then_loading_uses_that_model(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "config.toml"
+            engine = Engine(ensure_config(path), path)
+            ok, message = engine.update_settings({"model": "medium"})
+            self.assertTrue(ok, message)
+            self.assertEqual(engine.cfg.model, "medium")
+
+            with patch("monitor.engine.probe_cuda", return_value=(1, None)), patch.object(
+                engine, "_start_loader"
+            ) as start:
+                plan = engine._plan()
+                self.assertEqual(plan.model_arg, "medium")
+                self.assertEqual(plan.action, "needs_download")
+                self.assertFalse(plan.local_files_only)
+
+                ok, message = engine.request_load()
+                self.assertTrue(ok, message)
+                start.assert_called_once_with(plan)
+            engine.stop()
+
+    def test_load_again_reloads_an_already_ready_model(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "config.toml"
+            engine = Engine(ensure_config(path), path)
+            engine.model = object()
+            engine.model_state = "ready"
+            plan = Plan("load", True, "small", "cuda", "float16", "Loading the speech model from disk.")
+
+            with patch.object(engine, "_plan", return_value=plan), patch.object(engine, "_start_loader") as start:
+                ok, message = engine.request_load()
+
+            self.assertTrue(ok, message)
+            start.assert_called_once_with(plan)
+            engine.stop()
+
+    def test_loader_keeps_the_offline_setting_and_model_note_stable(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "config.toml"
+            engine = Engine(ensure_config(path), path)
+            engine.cfg.offline = False
+            plan = Plan("needs_download", False, "medium", "cuda", "float16", "download")
+            started = threading.Event()
+            release = threading.Event()
+            seen: list[bool] = []
+
+            def fake_load(_plan, _models_dir, offline):
+                seen.append(offline)
+                started.set()
+                release.wait(2)
+                return object()
+
+            with patch("monitor.transcribe.load_whisper", side_effect=fake_load):
+                engine._start_loader(plan)
+                self.assertTrue(started.wait(2))
+                self.assertIn("Downloading the medium", engine.model_note)
+                engine.cfg.offline = True
+                release.set()
+                engine._loader.join(2)
+
+            self.assertEqual(seen, [False])
+            self.assertEqual(engine.model_state, "ready")
             engine.stop()
 
     def test_malformed_settings_return_a_message_instead_of_raising(self):

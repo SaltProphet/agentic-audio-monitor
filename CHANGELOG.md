@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.2
+
+- Save the model selected on the page before **Load speech model** runs, so choosing `medium`, `large-v3`, or another model actually loads that model.
+- Make **Reload speech model** reload a model that is already ready instead of returning "already loaded".
+- Stop a local model load from switching the process-wide Hugging Face offline flag. That flag was cached at import time, so after `small` loaded from disk, every later `medium` or `large` download failed with `OfflineModeIsEnabled`.
+- Show a download message while larger weights are being fetched, and keep the offline setting stable during the load.
+
 ## 0.2.1
 
 - Install the CUDA 12 runtime DLLs (`nvidia-cublas-cu12` and `nvidia-cudnn-cu12`) with the other dependencies. A fresh install could previously start without them, so GPU transcription failed even though `nvidia-smi` worked.

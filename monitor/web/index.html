@@ -144,7 +144,7 @@
   <div>
     <p class="kicker">On this machine</p>
     <h1>Audio Monitor</h1>
-    <p class="version" id="app-version">Version 0.2.1</p>
+    <p class="version" id="app-version">Version 0.2.2</p>
   </div>
   <p class="step" id="step">Live audio capture · On-device transcription · Local history</p>
 </header>
@@ -483,19 +483,8 @@
     }
     if (!data.ok) $("device-msg").textContent = data.message || "The device was not opened.";
   });
-  $("load-model").addEventListener("click", async () => {
-    const res = await fetch("/api/model/load", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: "{}"
-    });
-    const data = await res.json();
-    if (data.state) render(data.state);
-    if (!data.ok && data.message) $("model-note").textContent = data.message;
-  });
-  $("settings").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const payload = {
+  function settingsPayload() {
+    return {
       sensitivity: Number($("sensitivity").value),
       save_clips: $("save-clips").checked,
       offline: $("offline").checked,
@@ -508,10 +497,12 @@
       compute_device: $("compute-device").value,
       compute_type: $("compute-type").value
     };
+  }
+  async function saveSettings() {
     const res = await fetch("/api/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(settingsPayload())
     });
     const data = await res.json();
     if (data.state) {
@@ -519,6 +510,25 @@
       render(data.state);
     }
     $("settings-msg").textContent = data.message || "";
+    return data;
+  }
+  $("load-model").addEventListener("click", async () => {
+    // The selected model lives in the form. Save it first so the load request
+    // uses the model on screen instead of the previously saved one.
+    const saved = await saveSettings();
+    if (!saved.ok) return;
+    const res = await fetch("/api/model/load", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}"
+    });
+    const data = await res.json();
+    if (data.state) render(data.state);
+    if (!data.ok && data.message) $("model-note").textContent = data.message;
+  });
+  $("settings").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await saveSettings();
   });
   $("cc-opacity").addEventListener("input", () => {
     $("cc-opacity-val").textContent = Number($("cc-opacity").value).toFixed(2);

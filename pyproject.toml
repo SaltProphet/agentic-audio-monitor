@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agentic-audio-monitor"
-version = "0.2.1"
+version = "0.2.2"
 description = "Local Windows audio monitor with on-GPU speech transcription and desktop captions."
 readme = "README.md"
 license = { file = "LICENSE" }

@@ -97,7 +97,8 @@ Files written beside the config:
 - No devices, or an import error: run `install.bat` and then `run.bat` again. The page is telling you the audio library is missing or the host returned no inputs. Loopback requires the default output to expose a Windows WASAPI loopback device.
 - Meter stays at "not capturing": you have not pressed **Use this device**, or that device failed to open. The error is on the page. Pick another input. Prefer the one marked system default if you want the default microphone.
 - Model line says no CUDA device, or that the CUDA library is missing: `nvidia-smi` is the check. This build will not quietly switch to the CPU.
-- Model line says weights are not on disk: press **Load speech model**, or set `offline = true` and provide `model_path`.
+- Model line says weights are not on disk: press **Load speech model**. That saves the model selected on the page and downloads its weights once into `models`. The first `medium` or `large-v3` load is a 1.5-3 GB download.
+- A larger model still does not download: clear **Offline** and press **Load speech model** again. Offline mode blocks every weight download, including models that are not already in `models`.
 - Utterance count climbs but the log stays empty: the model was not loaded yet, or it returned no words. Nothing is filled in for those.
 
 ## Tests

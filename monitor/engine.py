@@ -62,6 +62,7 @@ class Engine:
         self._worker: threading.Thread | None = None
         self._pruner: threading.Thread | None = None
         self._loader: threading.Thread | None = None
+        self._loader_lock = threading.Lock()
         self.cc = cc_controller or CCController(config_path.parent)
 
     def start(self) -> None:
@@ -209,8 +210,6 @@ class Engine:
             return False, plan.message
         if self.model_state == "loading":
             return False, "The speech model is already loading."
-        if self.model_state == "ready" and plan.action == "load":
-            return True, "The speech model is already loaded."
         self._start_loader(plan)
         return True, plan.message
 
@@ -538,12 +537,20 @@ class Engine:
                 self.model_error = plan.message
 
     def _start_loader(self, plan) -> None:
+        # Capture the privacy mode and model name before the thread starts. The
+        # settings can change while a large download is in flight, and the download
+        # must not start or stop based on a value that changed underneath it.
+        offline = self.cfg.offline
+        if plan.action == "needs_download":
+            note = f"Downloading the {plan.model_arg} speech model. This can take several minutes."
+        else:
+            note = plan.message
         with self.cv:
             if self.model_state == "loading":
                 return
             self.model_state = "loading"
             self.model_error = ""
-            self.model_note = plan.message
+            self.model_note = note
             self.model_gen += 1
             gen = self.model_gen
 
@@ -551,7 +558,10 @@ class Engine:
             try:
                 from .transcribe import load_whisper
 
-                model = load_whisper(plan, self.models_dir, self.cfg.offline)
+                with self._loader_lock:
+                    if gen != self.model_gen:
+                        return
+                    model = load_whisper(plan, self.models_dir, offline)
             except Exception as exc:
                 log.exception("model load failed")
                 with self.cv:
